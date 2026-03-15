@@ -1,0 +1,8 @@
+﻿import api from './api'
+export { authService } from './auth.service'
+export { materiasService } from './materias.service'
+export { notasService } from './notas.service'
+export { tareasService } from './tareas.service'
+export { dashboardService } from './dashboard.service'
+export { audioService } from './audio.service'
+export default api

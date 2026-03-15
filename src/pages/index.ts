@@ -1,0 +1,8 @@
+﻿export { LoginPage } from './LoginPage'
+export { RegisterPage } from './RegisterPage'
+export { DashboardPage } from './DashboardPage'
+export { MateriasPage } from './MateriasPage'
+export { NotasPage } from './NotasPage'
+export { NotaEditorPage } from './NotaEditorPage'
+export { TareasPage } from './TareasPage'
+export { GrabarPage } from './GrabarPage'
