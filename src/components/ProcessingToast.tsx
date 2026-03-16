@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useNotaProgress } from '@/hooks/useNotaProgress'
 import { useNotification } from '@/context/NotificationContext'
+import { markTagsDirty } from '@/services/browserCache'
 
 interface Props {
   notaId: number
@@ -27,6 +28,7 @@ export default function ProcessingToast({ notaId, notifId, onFinish }: Props) {
 
     // When finished or error, convert notification accordingly (always immediate)
     if (status === 'done') {
+      markTagsDirty(['notas', 'dashboard', `nota:${notaId}`])
       update(notifId, { type: 'success', title: 'Resumen listo', message: 'Haz clic para abrir la nota', progress: 100, persistent: false, url: `/notas/${notaId}` })
       setTimeout(() => {
         try { dismiss(notifId) } catch (_) {}

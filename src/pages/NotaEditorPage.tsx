@@ -13,6 +13,7 @@ import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
 import { usePdfExport } from '@/hooks/usePdfExport'
 import ProcessingToast from '@/components/ProcessingToast'
 import { processingTracker } from '@/services/processingTracker'
+import { markTagsDirty } from '@/services/browserCache'
 import type { NotaUpdate } from '@/types'
 
 export function NotaEditorPage() {
@@ -46,6 +47,7 @@ export function NotaEditorPage() {
   // Cuando la nota pasa a 'done', refrescar contenido
   useEffect(() => {
     if (notaId && notaStatus === 'done') {
+      markTagsDirty(['notas', 'dashboard', `nota:${notaId}`])
       queryClient.invalidateQueries({ queryKey: ['nota', notaId] })
       queryClient.invalidateQueries({ queryKey: ['notas'] })
     }

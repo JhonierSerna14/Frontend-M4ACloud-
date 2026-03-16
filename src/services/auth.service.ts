@@ -1,4 +1,5 @@
 ﻿import api from './api'
+import { cachedGet, clearCurrentUserCache, markTagsDirty } from './browserCache'
 import type { Usuario, LoginCredentials, RegisterData, TokenResponse } from '@/types'
 
 const TOKEN_KEY = 'token'
@@ -19,6 +20,8 @@ export const authService = {
     if (response.data.refresh_token) {
       localStorage.setItem(REFRESH_TOKEN_KEY, response.data.refresh_token)
     }
+
+    markTagsDirty(['auth:user'])
     
     return response.data
   },
@@ -29,11 +32,18 @@ export const authService = {
   },
 
   getCurrentUser: async (): Promise<Usuario> => {
-    const response = await api.get<Usuario>('/auth/me')
-    return response.data
+    return cachedGet('auth:me', async () => {
+      const response = await api.get<Usuario>('/auth/me')
+      return response.data
+    }, {
+      ttlMs: 1000 * 60 * 10,
+      staleWhileRevalidateMs: 1000 * 60 * 10,
+      tags: ['auth:user']
+    })
   },
 
   logout: () => {
+    clearCurrentUserCache()
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(REFRESH_TOKEN_KEY)
   },

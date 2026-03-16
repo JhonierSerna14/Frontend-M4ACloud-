@@ -1,4 +1,5 @@
 ﻿import api from './api'
+import { markTagsDirty } from './browserCache'
 import type { Nota } from '@/types'
 
 export const audioService = {
@@ -32,6 +33,7 @@ export const audioService = {
         }
       }
     })
+    markTagsDirty(['notas', 'dashboard', 'materias'])
     return data
   },
 }
