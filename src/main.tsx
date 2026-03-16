@@ -25,6 +25,14 @@ function reloadForFreshBuild() {
   window.location.reload()
 }
 
+window.setTimeout(() => {
+  try {
+    sessionStorage.removeItem(MODULE_RELOAD_KEY)
+  } catch {
+    // ignore
+  }
+}, 5000)
+
 window.addEventListener('error', (event) => {
   if (isDynamicImportErrorMessage(event.message)) {
     reloadForFreshBuild()
@@ -48,19 +56,11 @@ window.addEventListener('unhandledrejection', (event) => {
 // In Vite dev, /sw.js may not exist and returns HTML (MIME type error).
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    let controllerChanged = false
-
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (controllerChanged) return
-      controllerChanged = true
-      window.location.reload()
-    })
-
     navigator.serviceWorker.register('/sw.js', { scope: '/', type: 'module' }).then((registration) => {
       void registration.update()
-      window.setInterval(() => {
-        void registration.update()
-      }, 60_000)
+      if (registration.waiting) {
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+      }
     }).catch(() => {
       // SW registration failed, app will still work
     })
