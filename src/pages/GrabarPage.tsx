@@ -1,5 +1,6 @@
 ﻿import { useState, useRef, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { audioService } from '@/services/audio.service'
 import { materiasService } from '@/services/materias.service'
 import { notasService } from '@/services/notas.service'
@@ -33,6 +34,7 @@ function pickRecorderMimeType(): string | undefined {
 }
 
 export function GrabarPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [state, setState] = useState<RecordingState>('idle')
   const [audioFile, setAudioFile] = useState<File | null>(null)
   const [duracion, setDuracion] = useState(0)
@@ -41,6 +43,7 @@ export function GrabarPage() {
   const [fechaClase, setFechaClase] = useState<string>(new Date().toISOString().split('T')[0])
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState<number>(0)
+  const [loadingSharedAudio, setLoadingSharedAudio] = useState(false)
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -49,6 +52,9 @@ export function GrabarPage() {
   const queryClient = useQueryClient()
   const { success, error, info, loading, update, dismiss } = useNotification()
   const [processing, setProcessing] = useState<Array<{notaId:number; notifId:string}>>([])
+  const sharedAudioId = searchParams.get('sharedAudio')
+  const sharedAudioName = searchParams.get('sharedName') || 'audio-compartido'
+  const shareError = searchParams.get('shareError')
 
   const { data: materias } = useQuery({
     queryKey: ['materias'],
@@ -175,6 +181,84 @@ export function GrabarPage() {
     }
   }
 
+  // Carga audio recibido desde Share Target (PWA Android)
+  useEffect(() => {
+    if (!sharedAudioId) return
+
+    let cancelled = false
+
+    const loadSharedAudio = async () => {
+      setLoadingSharedAudio(true)
+      try {
+        const response = await fetch(`/shared-audio/${encodeURIComponent(sharedAudioId)}`, {
+          cache: 'no-store',
+        })
+
+        if (!response.ok) {
+          throw new Error('No se encontró el archivo compartido')
+        }
+
+        const blob = await response.blob()
+        const fallbackType = blob.type || 'audio/webm'
+        const inferredExt = fallbackType.includes('mpeg')
+          ? 'mp3'
+          : fallbackType.includes('ogg')
+            ? 'ogg'
+            : fallbackType.includes('wav')
+              ? 'wav'
+              : fallbackType.includes('mp4') || fallbackType.includes('m4a')
+                ? 'm4a'
+                : 'webm'
+
+        const decodedName = decodeURIComponent(sharedAudioName)
+        const hasExt = /\.[a-z0-9]+$/i.test(decodedName)
+        const finalName = hasExt ? decodedName : `${decodedName}.${inferredExt}`
+        const file = new File([blob], finalName, { type: fallbackType })
+
+        if (cancelled) return
+
+        setAudioFile(file)
+        setState('ready')
+        setDuracion(0)
+        setUploadError(null)
+
+        if (!titulo.trim()) {
+          const baseName = finalName.replace(/\.[^/.]+$/, '')
+          setTitulo(baseName.slice(0, 200))
+        }
+
+        info('Audio recibido', 'Se cargó desde compartir. Completa materia y fecha para subir.')
+
+        const next = new URLSearchParams(searchParams)
+        next.delete('sharedAudio')
+        next.delete('sharedName')
+        setSearchParams(next, { replace: true })
+      } catch (err) {
+        if (!cancelled) {
+          error('Error', 'No se pudo cargar el audio compartido')
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingSharedAudio(false)
+        }
+      }
+    }
+
+    loadSharedAudio()
+
+    return () => {
+      cancelled = true
+    }
+  }, [sharedAudioId, sharedAudioName, searchParams, setSearchParams, titulo, info, error])
+
+  useEffect(() => {
+    if (!shareError) return
+    error('Error', 'No se pudo recibir el audio compartido en la app')
+    const next = new URLSearchParams(searchParams)
+    next.delete('shareError')
+    setSearchParams(next, { replace: true })
+  }, [shareError, searchParams, setSearchParams, error])
+
   const resetState = () => {
     setAudioFile(null)
     setState('idle')
@@ -205,7 +289,15 @@ export function GrabarPage() {
       <Card>
         <CardContent className="p-8">
           <div className="flex flex-col items-center">
-            {state === 'recording' ? (
+            {loadingSharedAudio ? (
+              <>
+                <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                </div>
+                <p className="text-lg font-medium mt-4">Recibiendo audio compartido...</p>
+                <p className="text-muted-foreground">Preparando archivo para subir</p>
+              </>
+            ) : state === 'recording' ? (
               <>
                 <div className="relative">
                   <div className="h-24 w-24 rounded-full bg-red-100 flex items-center justify-center animate-pulse">

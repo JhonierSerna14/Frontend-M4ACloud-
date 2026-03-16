@@ -27,6 +27,7 @@ dist-ssr/
 # Vite
 .vite
 manifest.webmanifest
+!public/manifest.webmanifest
 
 # Env files — nunca commitear valores reales
 .env

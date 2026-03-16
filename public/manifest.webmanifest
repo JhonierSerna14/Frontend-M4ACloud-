@@ -1,0 +1,33 @@
+{
+  "name": "M4A - Mis Materias, Mis Apuntes",
+  "short_name": "M4A",
+  "description": "Organiza tus notas de clase y transcribe audios con IA.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "share_target": {
+    "action": "/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "audio",
+          "accept": [
+            "audio/*"
+          ]
+        }
+      ]
+    }
+  }
+}
