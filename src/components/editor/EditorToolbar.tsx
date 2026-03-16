@@ -3,7 +3,7 @@ import {
   Bold, Italic, Underline, Strikethrough,
   List, ListOrdered, CheckSquare,
   AlignLeft, AlignCenter, AlignRight,
-  Link, Image, Undo, Redo, ImagePlus
+  Link, Image, Undo, Redo, ImagePlus, Table
 } from 'lucide-react'
 
 interface EditorToolbarProps {
@@ -24,6 +24,24 @@ export function EditorToolbar({ editor, onImageUpload, onImageFromUrl }: EditorT
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
   }
 
+  const insertTable = () => {
+    const rowsInput = window.prompt('Numero de filas (sin contar encabezado):', '3')
+    if (rowsInput === null) return
+
+    const colsInput = window.prompt('Numero de columnas:', '3')
+    if (colsInput === null) return
+
+    const rows = Number.parseInt(rowsInput, 10)
+    const cols = Number.parseInt(colsInput, 10)
+
+    if (!Number.isInteger(rows) || !Number.isInteger(cols) || rows < 1 || cols < 1) {
+      window.alert('Filas y columnas deben ser numeros enteros mayores a 0.')
+      return
+    }
+
+    editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run()
+  }
+
   const ToolButton = ({ onClick, isActive, children, title }: {
     onClick: () => void
     isActive?: boolean
@@ -31,6 +49,7 @@ export function EditorToolbar({ editor, onImageUpload, onImageFromUrl }: EditorT
     title?: string
   }) => (
     <button
+      type="button"
       onClick={onClick}
       title={title}
       className={'p-1.5 rounded transition-colors ' + (isActive ? 'bg-muted text-primary' : 'hover:bg-muted')}
@@ -178,6 +197,58 @@ export function EditorToolbar({ editor, onImageUpload, onImageFromUrl }: EditorT
           <ImagePlus className="h-4 w-4" />
         </ToolButton>
       )}
+
+      <div className="w-px h-6 bg-border mx-1" />
+
+      <ToolButton
+        onClick={insertTable}
+        isActive={editor.isActive('table')}
+        title="Insertar tabla"
+      >
+        <Table className="h-4 w-4" />
+      </ToolButton>
+      <ToolButton
+        onClick={() => editor.chain().focus().addColumnBefore().run()}
+        title="Agregar columna izquierda"
+      >
+        C+
+      </ToolButton>
+      <ToolButton
+        onClick={() => editor.chain().focus().addColumnAfter().run()}
+        title="Agregar columna derecha"
+      >
+        +C
+      </ToolButton>
+      <ToolButton
+        onClick={() => editor.chain().focus().deleteColumn().run()}
+        title="Eliminar columna"
+      >
+        C-
+      </ToolButton>
+      <ToolButton
+        onClick={() => editor.chain().focus().addRowBefore().run()}
+        title="Agregar fila arriba"
+      >
+        F+
+      </ToolButton>
+      <ToolButton
+        onClick={() => editor.chain().focus().addRowAfter().run()}
+        title="Agregar fila abajo"
+      >
+        +F
+      </ToolButton>
+      <ToolButton
+        onClick={() => editor.chain().focus().deleteRow().run()}
+        title="Eliminar fila"
+      >
+        F-
+      </ToolButton>
+      <ToolButton
+        onClick={() => editor.chain().focus().deleteTable().run()}
+        title="Eliminar tabla"
+      >
+        T-
+      </ToolButton>
     </div>
   )
 }

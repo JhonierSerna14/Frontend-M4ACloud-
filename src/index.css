@@ -154,6 +154,10 @@ body {
   table-layout: fixed;
 }
 
+.tiptap .tableWrapper {
+  overflow-x: auto;
+}
+
 .tiptap table td,
 .tiptap table th {
   border: 1px solid var(--border);
@@ -188,6 +192,10 @@ body {
   pointer-events: none;
   top: 0;
   width: 4px;
+}
+
+.tiptap.resize-cursor {
+  cursor: col-resize;
 }
 
 .tiptap p.is-editor-empty:first-child::before {
