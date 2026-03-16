@@ -34,7 +34,8 @@ export function NotasPage() {
       fecha_hasta: fechaHasta || undefined,
       materia_id: materiaId,
       search: busqueda || undefined
-    })
+    }),
+    placeholderData: (previousData) => previousData
   })
 
   const { data: materias } = useQuery({
@@ -163,11 +164,13 @@ export function NotasPage() {
                     )}
                     <span>{formatDate(nota.fecha_clase || nota.fecha_creacion)}</span>
                   </div>
-                  {nota.contenido && (
-                    <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                      {nota.contenido.replace(/<[^>]*>/g, '').substring(0, 100)}...
-                    </p>
-                  )}
+                  <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                    {nota.status === 'queued'
+                      ? 'En cola de procesamiento'
+                      : nota.status === 'processing'
+                        ? 'Procesando transcripción...'
+                        : 'Abrir para ver contenido'}
+                  </p>
                 </CardContent>
               </Card>
             )

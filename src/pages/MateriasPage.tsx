@@ -19,6 +19,7 @@ export function MateriasPage() {
   const [editingMateria, setEditingMateria] = useState<Materia | null>(null)
   const [contentMateria, setContentMateria] = useState<Materia | null>(null)
   const [contenidoHtml, setContenidoHtml] = useState('')
+  const [loadingContent, setLoadingContent] = useState(false)
   const [formData, setFormData] = useState<MateriaCreate>({ nombre: '', color: COLORES[0] })
   
   const queryClient = useQueryClient()
@@ -89,10 +90,20 @@ export function MateriasPage() {
     setFormData({ nombre: '', color: COLORES[0] })
   }
 
-  const openContentModal = (materia: Materia) => {
+  const openContentModal = async (materia: Materia) => {
     setContentMateria(materia)
-    setContenidoHtml(materia.contenido_html || '')
+    setContenidoHtml('')
     setIsContentModalOpen(true)
+    setLoadingContent(true)
+    try {
+      const fullMateria = await materiasService.getById(materia.id)
+      setContentMateria(fullMateria)
+      setContenidoHtml(fullMateria.contenido_html || '')
+    } catch {
+      error('Error', 'No se pudo cargar el contenido de la materia')
+    } finally {
+      setLoadingContent(false)
+    }
   }
 
   const closeContentModal = () => {
@@ -259,16 +270,20 @@ export function MateriasPage() {
           <p className="text-sm text-muted-foreground">
             Agrega información, links, imágenes y cualquier contenido relevante para esta materia.
           </p>
-          <RichTextEditor
-            content={contenidoHtml}
-            onChange={setContenidoHtml}
-            placeholder="Escribe o pega contenido aquí..."
-          />
+          {loadingContent ? (
+            <Loading size="md" className="py-8" />
+          ) : (
+            <RichTextEditor
+              content={contenidoHtml}
+              onChange={setContenidoHtml}
+              placeholder="Escribe o pega contenido aquí..."
+            />
+          )}
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={closeContentModal}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveContent} disabled={updateContentMutation.isPending}>
+            <Button onClick={handleSaveContent} disabled={updateContentMutation.isPending || loadingContent}>
               {updateContentMutation.isPending ? 'Guardando...' : 'Guardar'}
             </Button>
           </div>

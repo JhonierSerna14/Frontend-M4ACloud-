@@ -25,7 +25,7 @@ export default function ProcessingRestorer() {
 
     for (const task of saved) {
       notasService.getStatus(task.notaId).then(st => {
-        if (st.status === 'processing' || st.status === 'pending') {
+        if (st.status === 'processing' || st.status === 'pending' || st.status === 'queued') {
           const notifId = loading(
             `Procesando: ${task.titulo}`,
             st.message ? `${st.progress}% — ${st.message}` : `${st.progress}%`,
