@@ -18,6 +18,7 @@ export default defineConfig({
         name: 'M4A - Mis Materias, Mis Apuntes',
         short_name: 'M4A',
         description: 'Gestiona tus clases, apuntes y tareas académicas',
+        lang: 'es',
         theme_color: '#3b82f6',
         background_color: '#f8fafc',
         display: 'standalone',
@@ -39,25 +40,25 @@ export default defineConfig({
         },
         icons: [
           {
-            src: 'vite.svg',
+            src: 'icons/icon-192.png',
             sizes: '192x192',
-            type: 'image/svg+xml'
+            type: 'image/png'
           },
           {
-            src: 'vite.svg',
+            src: 'icons/icon-512.png',
             sizes: '512x512',
-            type: 'image/svg+xml'
+            type: 'image/png'
           },
           {
-            src: 'vite.svg',
+            src: 'icons/icon-512-maskable.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ]
       },
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}']
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff2,webmanifest}']
       }
     })
   ],

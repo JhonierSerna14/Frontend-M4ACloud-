@@ -1,6 +1,8 @@
 /// <reference lib="webworker" />
 
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+import { registerRoute } from 'workbox-routing'
+import { NetworkFirst } from 'workbox-strategies'
 
 declare let self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<string | { revision: string | null; url: string }>
@@ -8,6 +10,14 @@ declare let self: ServiceWorkerGlobalScope & {
 
 const SHARE_CACHE = 'm4a-share-target-v2'
 const SHARE_ROUTE_PREFIX = '/shared-audio/'
+
+registerRoute(
+  ({ request }) => request.mode === 'navigate',
+  new NetworkFirst({
+    cacheName: 'app-shell-navigation',
+    networkTimeoutSeconds: 4,
+  })
+)
 
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
