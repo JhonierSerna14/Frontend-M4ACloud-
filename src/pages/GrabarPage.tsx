@@ -1,6 +1,7 @@
 ﻿import { useState, useRef, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
+import axios from 'axios'
 import { audioService } from '@/services/audio.service'
 import { materiasService } from '@/services/materias.service'
 import { notasService } from '@/services/notas.service'
@@ -48,6 +49,7 @@ export function GrabarPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const handledSharedAudioIdsRef = useRef<Set<string>>(new Set())
   
   const queryClient = useQueryClient()
   const { success, error, info, loading, update, dismiss } = useNotification()
@@ -161,7 +163,10 @@ export function GrabarPage() {
     },
     onError: (err) => {
       setState('ready')
-      const errorMsg = err instanceof Error ? err.message : 'Error desconocido'
+      let errorMsg = err instanceof Error ? err.message : 'Error desconocido'
+      if (axios.isAxiosError(err) && !err.response) {
+        errorMsg = 'Error de red al subir audio. Revisa tu conexión e intenta de nuevo.'
+      }
       setUploadError(errorMsg)
       error('Error al subir audio', errorMsg)
     }
@@ -184,6 +189,9 @@ export function GrabarPage() {
   // Carga audio recibido desde Share Target (PWA Android)
   useEffect(() => {
     if (!sharedAudioId) return
+    if (handledSharedAudioIdsRef.current.has(sharedAudioId)) return
+
+    handledSharedAudioIdsRef.current.add(sharedAudioId)
 
     let cancelled = false
 
