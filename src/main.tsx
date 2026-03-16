@@ -7,7 +7,7 @@ import './index.css'
 // In Vite dev, /sw.js may not exist and returns HTML (MIME type error).
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/', type: 'module' }).catch(() => {
       // SW registration failed, app will still work
     })
   })

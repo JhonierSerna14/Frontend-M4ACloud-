@@ -24,7 +24,11 @@
         {
           "name": "audio",
           "accept": [
-            "audio/*"
+            "audio/*",
+            ".m4a",
+            "audio/mp4",
+            "audio/x-m4a",
+            "audio/aac"
           ]
         }
       ]
