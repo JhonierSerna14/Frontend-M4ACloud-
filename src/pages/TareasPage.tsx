@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { tareasService } from '@/services/tareas.service'
 import { materiasService } from '@/services/materias.service'
 import { Button, Card, CardContent, Input, Loading, Badge, Modal, Select, Textarea } from '@/components/ui'
-import { Plus, CheckSquare, Trash2, Search } from 'lucide-react'
+import { Plus, CheckSquare, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDate, getDaysUntil } from '@/lib/utils'
 import { useNotification } from '@/context/NotificationContext'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
@@ -28,6 +28,15 @@ const BOARD_COLUMNS = [
   { key: 'en_progreso', title: 'En Proceso', tone: 'border-blue-200 bg-blue-50/40' },
   { key: 'completada', title: 'Finalizadas', tone: 'border-emerald-200 bg-emerald-50/40' }
 ] as const
+
+const QUICK_STATUS_ACTIONS: Record<typeof ESTADOS[number], Array<{ next: typeof ESTADOS[number]; dir: 'left' | 'right'; label: string }>> = {
+  pendiente: [{ next: 'en_progreso', dir: 'right', label: 'Mover a En Proceso' }],
+  en_progreso: [
+    { next: 'pendiente', dir: 'left', label: 'Mover a Pendiente' },
+    { next: 'completada', dir: 'right', label: 'Mover a Finalizada' }
+  ],
+  completada: [{ next: 'pendiente', dir: 'right', label: 'Mover a Pendiente' }]
+}
 
 export function TareasPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -88,10 +97,44 @@ export function TareasPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<TareaCreate> }) =>
       tareasService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tareas'] })
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['tareas'] })
+      const previousTareas = queryClient.getQueryData<Tarea[]>(['tareas'])
+
+      queryClient.setQueryData<Tarea[]>(['tareas'], (old) => {
+        if (!old) return old
+        return old.map((task) =>
+          task.id === id
+            ? { ...task, ...data, fecha_actualizacion: new Date().toISOString() }
+            : task
+        )
+      })
+
+      if (selectedTarea?.id === id) {
+        setSelectedTarea((prev) => (prev ? { ...prev, ...data } : prev))
+      }
+
+      return { previousTareas }
     },
-    onError: () => error('Error', 'No se pudo actualizar la tarea')
+    onSuccess: (updatedTask) => {
+      queryClient.setQueryData<Tarea[]>(['tareas'], (old) => {
+        if (!old) return old
+        return old.map((task) => (task.id === updatedTask.id ? { ...task, ...updatedTask } : task))
+      })
+
+      setSelectedTarea((prev) => (prev?.id === updatedTask.id ? { ...prev, ...updatedTask } : prev))
+
+      // Sync final state in background without blocking immediate UI feedback.
+      window.setTimeout(() => {
+        void queryClient.invalidateQueries({ queryKey: ['tareas'] })
+      }, 1200)
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousTareas) {
+        queryClient.setQueryData(['tareas'], context.previousTareas)
+      }
+      error('Error', 'No se pudo actualizar la tarea')
+    }
   })
 
   const deleteMutation = useMutation({
@@ -149,6 +192,11 @@ export function TareasPage() {
     }
 
     setDraggedTaskId(null)
+  }
+
+  const handleQuickStatusChange = (tarea: Tarea, estado: typeof ESTADOS[number]) => {
+    if (tarea.estado === estado) return
+    updateMutation.mutate({ id: tarea.id, data: { estado } })
   }
 
   const handleDropWithinPendientes = (dropTaskId: number) => {
@@ -318,6 +366,8 @@ export function TareasPage() {
               const fechaCompleta = tarea.fecha_limite + (tarea.hora_limite ? 'T' + tarea.hora_limite : '')
               const dias = getDaysUntil(fechaCompleta)
               const isCompleted = tarea.estado === 'completada'
+              const quickActions = QUICK_STATUS_ACTIONS[(tarea.estado as typeof ESTADOS[number]) || 'pendiente'] || []
+              const isUpdatingThisTask = updateMutation.isPending && updateMutation.variables?.id === tarea.id
 
               return (
                 <Card
@@ -383,6 +433,25 @@ export function TareasPage() {
                           {dias === 0 ? 'Hoy' : dias === 1 ? 'Mañana' : dias + ' dias'}
                         </Badge>
                       )}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
+                      {quickActions.map((action, index) => (
+                        <button
+                          key={tarea.id + '-' + action.next + '-' + index}
+                          type="button"
+                          onClick={() => handleQuickStatusChange(tarea, action.next)}
+                          disabled={isUpdatingThisTask}
+                          title={action.label}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {action.dir === 'left' ? (
+                            <ChevronLeft className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </button>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
