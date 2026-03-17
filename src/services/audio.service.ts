@@ -42,7 +42,6 @@ export const audioService = {
       }
 
       return api.post<Nota>('/notas/audio/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 1800000, // 30 minutos para audios muy largos
         onUploadProgress: (progressEvent) => {
           if (onUploadProgress && progressEvent.total) {

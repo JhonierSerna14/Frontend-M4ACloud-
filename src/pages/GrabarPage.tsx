@@ -206,8 +206,23 @@ export function GrabarPage() {
           throw new Error('No se encontró el archivo compartido')
         }
 
+        const decodedName = decodeURIComponent(sharedAudioName)
         const blob = await response.blob()
-        const fallbackType = blob.type || 'audio/webm'
+        const extFromName = decodedName.split('.').pop()?.toLowerCase() || ''
+        const typeFromExt = extFromName === 'mp3'
+          ? 'audio/mpeg'
+          : extFromName === 'wav'
+            ? 'audio/wav'
+            : extFromName === 'ogg' || extFromName === 'oga'
+              ? 'audio/ogg'
+              : extFromName === 'm4a' || extFromName === 'aac'
+                ? 'audio/mp4'
+                : extFromName === 'webm'
+                  ? 'audio/webm'
+                  : ''
+
+        const isReliableBlobType = Boolean(blob.type) && blob.type !== 'application/octet-stream'
+        const fallbackType = isReliableBlobType ? blob.type : (typeFromExt || 'audio/webm')
         const inferredExt = fallbackType.includes('mpeg')
           ? 'mp3'
           : fallbackType.includes('ogg')
@@ -218,7 +233,6 @@ export function GrabarPage() {
                 ? 'm4a'
                 : 'webm'
 
-        const decodedName = decodeURIComponent(sharedAudioName)
         const hasExt = /\.[a-z0-9]+$/i.test(decodedName)
         const finalName = hasExt ? decodedName : `${decodedName}.${inferredExt}`
         const file = new File([blob], finalName, { type: fallbackType })
