@@ -164,8 +164,25 @@ export function GrabarPage() {
     onError: (err) => {
       setState('ready')
       let errorMsg = err instanceof Error ? err.message : 'Error desconocido'
-      if (axios.isAxiosError(err) && !err.response) {
-        errorMsg = 'Error de red al subir audio. Revisa tu conexión e intenta de nuevo.'
+      if (axios.isAxiosError(err)) {
+        if (!err.response) {
+          errorMsg = 'Error de red al subir audio. Revisa tu conexión e intenta de nuevo.'
+        } else {
+          const detail = err.response.data && typeof err.response.data === 'object'
+            ? (err.response.data as { detail?: unknown }).detail
+            : undefined
+
+          if (typeof detail === 'string' && detail.trim()) {
+            errorMsg = detail
+          } else if (Array.isArray(detail) && detail.length > 0) {
+            const first = detail[0] as { msg?: string }
+            if (first?.msg) {
+              errorMsg = first.msg
+            }
+          } else {
+            errorMsg = 'Error al subir audio (HTTP ' + err.response.status + ')'
+          }
+        }
       }
       setUploadError(errorMsg)
       error('Error al subir audio', errorMsg)

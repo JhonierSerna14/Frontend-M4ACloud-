@@ -1,10 +1,7 @@
 ﻿import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  baseURL: import.meta.env.VITE_API_URL || '/api'
 })
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
@@ -28,6 +25,15 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 }
 
 api.interceptors.request.use((config) => {
+  const isFormDataPayload = typeof FormData !== 'undefined' && config.data instanceof FormData
+
+  // Ensure browser can set multipart boundaries for FormData payloads.
+  if (isFormDataPayload && config.headers) {
+    ;(config.headers as { delete?: (name: string) => void }).delete?.('Content-Type')
+    delete (config.headers as Record<string, unknown>)['Content-Type']
+    delete (config.headers as Record<string, unknown>)['content-type']
+  }
+
   const token = localStorage.getItem('token')
   if (token) {
     config.headers.Authorization = 'Bearer ' + token
