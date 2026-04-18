@@ -1,4 +1,4 @@
-﻿import { Suspense, lazy } from 'react'
+﻿import { Suspense, lazy, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
@@ -7,6 +7,8 @@ import { MainLayout } from '@/components/layout'
 import { Loading } from '@/components/ui'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import ProcessingRestorer from '@/components/ProcessingRestorer'
+import { getCacheRevalidatedEventName } from '@/services/browserCache'
+import { startCrudSyncBridge } from '@/services/crudSync'
 
 const LoginPage = lazy(() => import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })))
 const RegisterPage = lazy(() => import('@/pages/RegisterPage').then((m) => ({ default: m.RegisterPage })))
@@ -26,7 +28,7 @@ const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
-      refetchOnMount: false
+      refetchOnMount: true
     }
   }
 })
@@ -106,13 +108,65 @@ function AppRoutes() {
   )
 }
 
+function CacheRevalidationBridge() {
+  useEffect(() => {
+    const eventName = getCacheRevalidatedEventName()
+
+    const listener = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        key?: string
+        value?: unknown
+      }>
+
+      const key = customEvent.detail?.key
+      const value = customEvent.detail?.value
+      if (!key) return
+
+      if (key === 'dashboard:summary' && value) {
+        queryClient.setQueryData(['dashboard'], value)
+        return
+      }
+
+      if (key.startsWith('nota:') && value) {
+        const id = Number(key.split(':')[1])
+        if (Number.isFinite(id)) {
+          queryClient.setQueryData(['nota', id], value)
+        }
+        return
+      }
+
+      if (key.startsWith('notas:list:')) {
+        queryClient.invalidateQueries({ queryKey: ['notas'], refetchType: 'active' })
+      }
+    }
+
+    window.addEventListener(eventName, listener)
+    return () => window.removeEventListener(eventName, listener)
+  }, [])
+
+  return null
+}
+
+function CrudSyncBridge() {
+  const { isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    return startCrudSyncBridge(queryClient, import.meta.env.DEV)
+  }, [isAuthenticated])
+
+  return null
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
+        <CacheRevalidationBridge />
         <BrowserRouter>
           <AuthProvider>
             <NotificationProvider>
+              <CrudSyncBridge />
               <ProcessingRestorer />
               <AppRoutes />
             </NotificationProvider>

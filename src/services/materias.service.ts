@@ -21,7 +21,7 @@ export const materiasService = {
     }, {
       ttlMs: 1000 * 60 * 20,
       staleWhileRevalidateMs: 1000 * 60 * 20,
-      tags: ['materias']
+      tags: ['materias', `materia:${id}`]
     })
   },
 
@@ -33,13 +33,13 @@ export const materiasService = {
 
   update: async (id: number, data: MateriaCreate): Promise<Materia> => {
     const response = await api.put('/materias/' + id, data)
-    markTagsDirty(['materias', 'dashboard'])
+    markTagsDirty(['materias', 'dashboard', `materia:${id}`])
     return response.data
   },
 
   updateContent: async (id: number, contenido_html: string): Promise<Materia> => {
     const response = await api.put('/materias/' + id, { contenido_html })
-    markTagsDirty(['materias'])
+    markTagsDirty(['materias', `materia:${id}`])
     return response.data
   },
 

@@ -145,3 +145,20 @@ export interface TokenResponse {
   refresh_token: string
   token_type: string
 }
+
+export interface SyncConnectedEvent {
+  event_type: 'sync.connected'
+  protocol_version: number
+  scope: 'user'
+  occurred_at: string
+}
+
+export interface SyncCrudEvent {
+  event_type: 'sync.event'
+  action: 'created' | 'updated' | 'deleted' | 'reordered'
+  entity: 'tarea' | 'materia' | 'nota'
+  id: number | null
+  payload?: Record<string, unknown> | null
+  affected_collections?: string[]
+  occurred_at: string
+}

@@ -6,6 +6,7 @@ import { Plus, Edit2, Trash2, BookOpen } from 'lucide-react'
 import { useNotification } from '@/context/NotificationContext'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
 import { RichTextEditor } from '@/components/editor'
+import { removeMateriaFromCache, upsertMateriaInCache } from '@/services/entityCache'
 import type { Materia, MateriaCreate } from '@/types'
 
 const COLORES = [
@@ -33,8 +34,9 @@ export function MateriasPage() {
 
   const createMutation = useMutation({
     mutationFn: materiasService.create,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materias'] })
+    onSuccess: (newMateria) => {
+      upsertMateriaInCache(queryClient, newMateria)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       success('Materia creada', 'La materia se ha creado correctamente')
       closeModal()
     },
@@ -44,8 +46,9 @@ export function MateriasPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: MateriaCreate }) => 
       materiasService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materias'] })
+    onSuccess: (updatedMateria) => {
+      upsertMateriaInCache(queryClient, updatedMateria)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       success('Materia actualizada', 'La materia se ha actualizado correctamente')
       closeModal()
     },
@@ -54,8 +57,9 @@ export function MateriasPage() {
 
   const deleteMutation = useMutation({
     mutationFn: materiasService.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materias'] })
+    onSuccess: (_void, deletedId) => {
+      removeMateriaFromCache(queryClient, deletedId)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       success('Materia eliminada', 'La materia se ha eliminado correctamente')
     },
     onError: () => error('Error', 'No se pudo eliminar la materia')
@@ -64,8 +68,8 @@ export function MateriasPage() {
   const updateContentMutation = useMutation({
     mutationFn: ({ id, contenido_html }: { id: number; contenido_html: string }) => 
       materiasService.updateContent(id, contenido_html),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materias'] })
+    onSuccess: (updatedMateria) => {
+      upsertMateriaInCache(queryClient, updatedMateria)
       success('Contenido guardado', 'El contenido se ha guardado correctamente')
       closeContentModal()
     },
@@ -98,6 +102,7 @@ export function MateriasPage() {
     try {
       const fullMateria = await materiasService.getById(materia.id)
       setContentMateria(fullMateria)
+      queryClient.setQueryData(['materia', materia.id], fullMateria)
       setContenidoHtml(fullMateria.contenido_html || '')
     } catch {
       error('Error', 'No se pudo cargar el contenido de la materia')

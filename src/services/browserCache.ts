@@ -14,8 +14,16 @@ type CachedGetOptions = {
   forceRefresh?: boolean
 }
 
+type CacheRevalidatedDetail<T> = {
+  key: string
+  value: T
+  tags: string[]
+  cachedAt: number
+}
+
 const CACHE_PREFIX = 'm4a:cache:'
 const DIRTY_PREFIX = 'm4a:dirty:'
+const CACHE_REVALIDATED_EVENT = 'm4a:cache-revalidated'
 const inflight = new Map<string, Promise<unknown>>()
 
 function canUseStorage() {
@@ -130,8 +138,18 @@ function writeCacheEntry<T>(key: string, entry: CacheEntry<T>) {
   })
 }
 
+function emitCacheRevalidated<T>(detail: CacheRevalidatedDetail<T>) {
+  if (typeof window === 'undefined') return
+  try {
+    window.dispatchEvent(new CustomEvent(CACHE_REVALIDATED_EVENT, { detail }))
+  } catch {
+    // Ignore event dispatch errors to keep cache flow resilient.
+  }
+}
+
 async function fetchAndStore<T>(
   storageKey: string,
+  cacheKey: string,
   fetcher: () => Promise<T>,
   ttlMs: number,
   tags: string[]
@@ -143,13 +161,15 @@ async function fetchAndStore<T>(
 
   const promise = (async () => {
     const value = await fetcher()
+    const cachedAt = Date.now()
     writeCacheEntry(storageKey, {
       value,
-      expiresAt: Date.now() + ttlMs,
+      expiresAt: cachedAt + ttlMs,
       tags,
-      cachedAt: Date.now(),
+      cachedAt,
     })
     clearDirtyTags(tags)
+    emitCacheRevalidated({ key: cacheKey, value, tags, cachedAt })
     return value
   })()
 
@@ -180,12 +200,16 @@ export async function cachedGet<T>(
 
     const canUseStale = staleWhileRevalidateMs > 0 && now <= entry.expiresAt + staleWhileRevalidateMs
     if (canUseStale) {
-      void fetchAndStore(storageKey, fetcher, options.ttlMs, options.tags)
+      void fetchAndStore(storageKey, key, fetcher, options.ttlMs, options.tags)
       return entry.value
     }
   }
 
-  return fetchAndStore(storageKey, fetcher, options.ttlMs, options.tags)
+  return fetchAndStore(storageKey, key, fetcher, options.ttlMs, options.tags)
+}
+
+export function getCacheRevalidatedEventName() {
+  return CACHE_REVALIDATED_EVENT
 }
 
 export function clearCurrentUserCache() {

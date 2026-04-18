@@ -169,7 +169,9 @@ export function NotasPage() {
                       ? 'En cola de procesamiento'
                       : nota.status === 'processing'
                         ? 'Procesando transcripción...'
-                        : 'Abrir para ver contenido'}
+                        : nota.status === 'retry'
+                          ? 'Requiere reintento manual'
+                          : 'Abrir para ver contenido'}
                   </p>
                 </CardContent>
               </Card>

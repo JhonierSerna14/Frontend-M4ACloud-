@@ -8,6 +8,7 @@ import { Plus, CheckSquare, Trash2, Search, ChevronLeft, ChevronRight } from 'lu
 import { formatDate, getDaysUntil } from '@/lib/utils'
 import { useNotification } from '@/context/NotificationContext'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
+import { removeTareaFromCache, patchTareasOrderInCache, upsertTareaInCache } from '@/services/entityCache'
 import type { Tarea, TareaCreate } from '@/types'
 
 const TIPOS = [
@@ -86,8 +87,10 @@ export function TareasPage() {
 
   const createMutation = useMutation({
     mutationFn: tareasService.create,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tareas'] })
+    onSuccess: (newTask) => {
+      upsertTareaInCache(queryClient, newTask)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['tareas', 'calendario'] })
       success('Tarea creada', 'La tarea se ha creado correctamente')
       closeModal()
     },
@@ -117,17 +120,11 @@ export function TareasPage() {
       return { previousTareas }
     },
     onSuccess: (updatedTask) => {
-      queryClient.setQueryData<Tarea[]>(['tareas'], (old) => {
-        if (!old) return old
-        return old.map((task) => (task.id === updatedTask.id ? { ...task, ...updatedTask } : task))
-      })
+      upsertTareaInCache(queryClient, updatedTask)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['tareas', 'calendario'] })
 
       setSelectedTarea((prev) => (prev?.id === updatedTask.id ? { ...prev, ...updatedTask } : prev))
-
-      // Sync final state in background without blocking immediate UI feedback.
-      window.setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: ['tareas'] })
-      }, 1200)
     },
     onError: (_err, _variables, context) => {
       if (context?.previousTareas) {
@@ -139,8 +136,10 @@ export function TareasPage() {
 
   const deleteMutation = useMutation({
     mutationFn: tareasService.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tareas'] })
+    onSuccess: (_void, deletedId) => {
+      removeTareaFromCache(queryClient, deletedId)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['tareas', 'calendario'] })
       success('Tarea eliminada', 'La tarea se ha eliminado')
     },
     onError: () => error('Error', 'No se pudo eliminar la tarea')
@@ -148,8 +147,8 @@ export function TareasPage() {
 
   const reorderMutation = useMutation({
     mutationFn: (ids: number[]) => tareasService.reorder(ids),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tareas'] })
+    onSuccess: (_void, orderedIds) => {
+      patchTareasOrderInCache(queryClient, orderedIds)
     },
     onError: () => error('Error', 'No se pudo reordenar la lista de pendientes')
   })
@@ -483,7 +482,10 @@ export function TareasPage() {
     if (!id) return
     const tid = Number(id)
     if (Number.isNaN(tid)) return
-    tareasService.getById(tid).then(t => setSelectedTarea(t)).catch(() => { })
+    tareasService.getById(tid).then((t) => {
+      setSelectedTarea(t)
+      queryClient.setQueryData(['tarea', tid], t)
+    }).catch(() => { })
   }, [id])
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react'
+﻿import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { notasService } from '@/services/notas.service'
@@ -14,6 +14,7 @@ import { usePdfExport } from '@/hooks/usePdfExport'
 import ProcessingToast from '@/components/ProcessingToast'
 import { processingTracker } from '@/services/processingTracker'
 import { markTagsDirty } from '@/services/browserCache'
+import { upsertNotaInCache, removeNotaFromCache } from '@/services/notasCache'
 import type { NotaUpdate } from '@/types'
 
 export function NotaEditorPage() {
@@ -34,6 +35,7 @@ export function NotaEditorPage() {
   const [hasChanges, setHasChanges] = useState(false)
   const [saved, setSaved] = useState(false)
   const notasSearch = location.search
+  const refreshedAfterDoneRef = useRef(false)
 
   const { data: nota, isLoading: isLoadingNota } = useQuery({
     queryKey: ['nota', notaId],
@@ -46,10 +48,15 @@ export function NotaEditorPage() {
 
   // Cuando la nota pasa a 'done', refrescar contenido
   useEffect(() => {
-    if (notaId && notaStatus === 'done') {
+    if (notaId && notaStatus === 'done' && !refreshedAfterDoneRef.current) {
+      refreshedAfterDoneRef.current = true
       markTagsDirty(['notas', 'dashboard', `nota:${notaId}`])
       queryClient.invalidateQueries({ queryKey: ['nota', notaId] })
-      queryClient.invalidateQueries({ queryKey: ['notas'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    }
+
+    if (notaStatus !== 'done') {
+      refreshedAfterDoneRef.current = false
     }
   }, [notaId, notaStatus, queryClient])
 
@@ -70,7 +77,8 @@ export function NotaEditorPage() {
   const createMutation = useMutation({
     mutationFn: notasService.create,
     onSuccess: (newNota) => {
-      queryClient.invalidateQueries({ queryKey: ['notas'] })
+      upsertNotaInCache(queryClient, newNota)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       success('Nota creada', 'La nota se ha guardado correctamente')
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -82,9 +90,8 @@ export function NotaEditorPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: NotaUpdate; showSuccessToast?: boolean }) =>
       notasService.update(id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['nota', notaId] })
-      queryClient.invalidateQueries({ queryKey: ['notas'] })
+    onSuccess: (updatedNota, variables) => {
+      upsertNotaInCache(queryClient, updatedNota)
       setHasChanges(false)
       setSaved(true)
       if (variables.showSuccessToast) {
@@ -97,8 +104,10 @@ export function NotaEditorPage() {
 
   const deleteMutation = useMutation({
     mutationFn: notasService.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notas'] })
+    onSuccess: (_, deletedId) => {
+      removeNotaFromCache(queryClient, deletedId)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['materias'] })
       success('Nota eliminada', 'La nota se ha eliminado')
       navigate({ pathname: '/notas', search: notasSearch })
     },
@@ -108,7 +117,7 @@ export function NotaEditorPage() {
   const reprocessMutation = useMutation({
     mutationFn: notasService.reprocess,
     onSuccess: (nota) => {
-      queryClient.invalidateQueries({ queryKey: ['nota', notaId] })
+      upsertNotaInCache(queryClient, nota)
       refetchProgress()
 
       // Crear notificación de progreso abajo a la derecha
@@ -324,7 +333,8 @@ export function NotaEditorPage() {
           onFinish={(id) => {
             processingTracker.remove(id)
             setReprocessToast(null)
-            queryClient.invalidateQueries({ queryKey: ['nota', notaId] })
+            queryClient.invalidateQueries({ queryKey: ['nota', id] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] })
           }}
         />
       )}

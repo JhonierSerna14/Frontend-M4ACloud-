@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNotaProgress } from '@/hooks/useNotaProgress'
 import { useNotification } from '@/context/NotificationContext'
 import { markTagsDirty } from '@/services/browserCache'
+import { patchNotaProgressInCache } from '@/services/notasCache'
 
 interface Props {
   notaId: number
@@ -10,6 +12,7 @@ interface Props {
 }
 
 export default function ProcessingToast({ notaId, notifId, onFinish }: Props) {
+  const queryClient = useQueryClient()
   const { status, progress, message: wsMessage } = useNotaProgress(notaId)
   const { update, dismiss } = useNotification()
   const lastUpdateRef = useRef(0)
@@ -24,11 +27,15 @@ export default function ProcessingToast({ notaId, notifId, onFinish }: Props) {
     // Mark that we've started receiving updates
     if (status !== null || progress > 0) {
       hasReceivedData.current = true
+      patchNotaProgressInCache(queryClient, notaId, { status, progress })
     }
 
     // When finished or error, convert notification accordingly (always immediate)
     if (status === 'done') {
       markTagsDirty(['notas', 'dashboard', `nota:${notaId}`])
+      patchNotaProgressInCache(queryClient, notaId, { status: 'done', progress: 100 })
+      queryClient.invalidateQueries({ queryKey: ['nota', notaId] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       update(notifId, { type: 'success', title: 'Resumen listo', message: 'Haz clic para abrir la nota', progress: 100, persistent: false, url: `/notas/${notaId}` })
       setTimeout(() => {
         try { dismiss(notifId) } catch (_) {}
@@ -37,8 +44,14 @@ export default function ProcessingToast({ notaId, notifId, onFinish }: Props) {
       return
     }
 
-    if (status === 'error') {
-      update(notifId, { type: 'error', title: 'Error', message: 'Falló el procesamiento', persistent: false })
+    if (status === 'error' || status === 'retry') {
+      patchNotaProgressInCache(queryClient, notaId, { status, progress })
+      update(notifId, {
+        type: 'error',
+        title: status === 'retry' ? 'Requiere reintento' : 'Error',
+        message: status === 'retry' ? 'La transcripción ya quedó guardada; puedes reprocesar manualmente.' : 'Falló el procesamiento',
+        persistent: false,
+      })
       if (onFinish) onFinish(notaId)
       return
     }
@@ -59,7 +72,7 @@ export default function ProcessingToast({ notaId, notifId, onFinish }: Props) {
       lastProgressRef.current = progress
     }
 
-  }, [progress, status, wsMessage, notifId, update, dismiss, notaId, onFinish])
+  }, [progress, status, wsMessage, notifId, update, dismiss, notaId, onFinish, queryClient])
 
   return null
 }

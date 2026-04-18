@@ -78,9 +78,17 @@ export default defineConfig({
         ws: true,
         // Evitar trazas ruidosas cuando el socket se aborta o el backend cierra la conexión
         configure: (proxy, _options) => {
+          let lastConnRefusedLogAt = 0
           proxy.on('error', (err, _req, _res) => {
+            const code = err && (err as NodeJS.ErrnoException).code
             // Silenciar errores esperables (ECONNABORTED / ECONNRESET) para no llenar la consola
-            if (err && (err as NodeJS.ErrnoException).code && ((err as NodeJS.ErrnoException).code === 'ECONNABORTED' || (err as NodeJS.ErrnoException).code === 'ECONNRESET')) return
+            if (code && (code === 'ECONNABORTED' || code === 'ECONNRESET')) return
+            // Throttle de ECONNREFUSED: mostrar una vez cada 10s en lugar de spamear por request/ws
+            if (code === 'ECONNREFUSED') {
+              const now = Date.now()
+              if (now - lastConnRefusedLogAt < 10000) return
+              lastConnRefusedLogAt = now
+            }
             // Loguear el resto para facilitar depuración
             // eslint-disable-next-line no-console
             console.error('vite proxy error:', err && err.stack ? err.stack : err)
