@@ -1,4 +1,4 @@
-﻿import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { ResizableImage } from './ResizableImage'
 import Link from '@tiptap/extension-link'
@@ -189,7 +189,7 @@ export function RichTextEditor({
                 if (onImageUpload) {
                   handleImageUpload(file).then(url => {
                     if (url) {
-                      editor?.chain().focus().insertImage({ src: url }).run()
+                      editor?.chain().focus().setImage({ src: url }).run()
                     }
                   }).catch(() => {})
                 } else {
@@ -197,7 +197,7 @@ export function RichTextEditor({
                   const reader = new FileReader()
                   reader.onload = () => {
                     const dataUrl = reader.result as string
-                    editor?.chain().focus().insertImage({ src: dataUrl }).run()
+                    editor?.chain().focus().setImage({ src: dataUrl }).run()
                   }
                   reader.readAsDataURL(file)
                 }
@@ -216,13 +216,13 @@ export function RichTextEditor({
               event.preventDefault()
               if (onImageUpload) {
                 handleImageUpload(file).then(url => {
-                  if (url) editor?.chain().focus().insertImage({ src: url }).run()
+                  if (url) editor?.chain().focus().setImage({ src: url }).run()
                 })
               } else {
                 const reader = new FileReader()
                 reader.onload = () => {
                   const dataUrl = reader.result as string
-                  editor?.chain().focus().insertImage({ src: dataUrl }).run()
+                  editor?.chain().focus().setImage({ src: dataUrl }).run()
                 }
                 reader.readAsDataURL(file)
               }
@@ -239,7 +239,7 @@ export function RichTextEditor({
             const src = match[1]
             event.preventDefault()
             // If it's a data URL just insert, otherwise insert URL as-is
-            editor?.chain().focus().insertImage({ src }).run()
+            editor?.chain().focus().setImage({ src }).run()
             return true
           }
         }
@@ -268,7 +268,7 @@ export function RichTextEditor({
         const url = await handleImageUpload(file)
         if (url) {
           // Insertar en la posición actual del cursor
-          editor?.chain().focus().insertImage({ src: url }).run()
+          editor?.chain().focus().setImage({ src: url }).run()
         }
       }
     }
@@ -279,7 +279,7 @@ export function RichTextEditor({
   const addImageFromUrl = useCallback(() => {
     const url = window.prompt('URL de la imagen:')
     if (url) {
-      editor?.chain().focus().insertImage({ src: url }).run()
+      editor?.chain().focus().setImage({ src: url }).run()
     }
   }, [editor])
 
