@@ -1,4 +1,4 @@
-﻿export interface Usuario {
+export interface Usuario {
   id: number
   email: string
   nombre: string
@@ -40,8 +40,8 @@ export interface Nota {
   duracion_audio?: number
   idioma_detectado?: string
   status?: string
+  status_message?: string
   progreso?: number
-  es_de_audio?: boolean
 }
 
 export interface NotaCreate {
@@ -92,6 +92,7 @@ export interface TareaCalendarioEvento {
   prioridad: number
   hora?: string
   materia_color?: string | null
+  materia_nombre?: string | null
 }
 
 export interface TareaCalendarioResponse {

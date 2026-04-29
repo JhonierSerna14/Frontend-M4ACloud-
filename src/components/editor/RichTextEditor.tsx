@@ -32,6 +32,20 @@ export function RichTextEditor({
   editable = true
 }: RichTextEditorProps) {
   const [isUploading, setIsUploading] = useState(false)
+  const [showTableActions, setShowTableActions] = useState(false)
+  const touchLongPressTimerRef = useRef<number | null>(null)
+  
+  const isEventInsideTable = (event: Event) => {
+    const target = event.target as HTMLElement | null
+    return !!target?.closest('table')
+  }
+
+  const clearTouchLongPress = () => {
+    if (touchLongPressTimerRef.current !== null) {
+      window.clearTimeout(touchLongPressTimerRef.current)
+      touchLongPressTimerRef.current = null
+    }
+  }
   
   // Handler para subir imagen con estado de carga
   const handleImageUpload = useCallback(async (file: File): Promise<string | null> => {
@@ -119,6 +133,48 @@ export function RichTextEditor({
         }
         return false
       },
+      handleDOMEvents: {
+        contextmenu: (view, event) => {
+          if (isEventInsideTable(event)) {
+            event.preventDefault()
+            setShowTableActions(true)
+            return true
+          }
+          setShowTableActions(false)
+          return false
+        },
+        mousedown: (view, event) => {
+          if (!isEventInsideTable(event)) {
+            setShowTableActions(false)
+          }
+          return false
+        },
+        touchstart: (view, event) => {
+          if (isEventInsideTable(event)) {
+            clearTouchLongPress()
+            touchLongPressTimerRef.current = window.setTimeout(() => {
+              setShowTableActions(true)
+              touchLongPressTimerRef.current = null
+            }, 550)
+          } else {
+            clearTouchLongPress()
+            setShowTableActions(false)
+          }
+          return false
+        },
+        touchend: () => {
+          clearTouchLongPress()
+          return false
+        },
+        touchmove: () => {
+          clearTouchLongPress()
+          return false
+        },
+        touchcancel: () => {
+          clearTouchLongPress()
+          return false
+        },
+      },
       handlePaste: (view, event) => {
         // Check for clipboard items (preferred)
         const items = event.clipboardData?.items
@@ -133,7 +189,7 @@ export function RichTextEditor({
                 if (onImageUpload) {
                   handleImageUpload(file).then(url => {
                     if (url) {
-                      editor?.chain().focus().setImage({ src: url }).run()
+                      editor?.chain().focus().insertImage({ src: url }).run()
                     }
                   }).catch(() => {})
                 } else {
@@ -141,7 +197,7 @@ export function RichTextEditor({
                   const reader = new FileReader()
                   reader.onload = () => {
                     const dataUrl = reader.result as string
-                    editor?.chain().focus().setImage({ src: dataUrl }).run()
+                    editor?.chain().focus().insertImage({ src: dataUrl }).run()
                   }
                   reader.readAsDataURL(file)
                 }
@@ -160,13 +216,13 @@ export function RichTextEditor({
               event.preventDefault()
               if (onImageUpload) {
                 handleImageUpload(file).then(url => {
-                  if (url) editor?.chain().focus().setImage({ src: url }).run()
+                  if (url) editor?.chain().focus().insertImage({ src: url }).run()
                 })
               } else {
                 const reader = new FileReader()
                 reader.onload = () => {
                   const dataUrl = reader.result as string
-                  editor?.chain().focus().setImage({ src: dataUrl }).run()
+                  editor?.chain().focus().insertImage({ src: dataUrl }).run()
                 }
                 reader.readAsDataURL(file)
               }
@@ -183,7 +239,7 @@ export function RichTextEditor({
             const src = match[1]
             event.preventDefault()
             // If it's a data URL just insert, otherwise insert URL as-is
-            editor?.chain().focus().setImage({ src }).run()
+            editor?.chain().focus().insertImage({ src }).run()
             return true
           }
         }
@@ -212,7 +268,7 @@ export function RichTextEditor({
         const url = await handleImageUpload(file)
         if (url) {
           // Insertar en la posición actual del cursor
-          editor?.chain().focus().setImage({ src: url }).run()
+          editor?.chain().focus().insertImage({ src: url }).run()
         }
       }
     }
@@ -223,7 +279,7 @@ export function RichTextEditor({
   const addImageFromUrl = useCallback(() => {
     const url = window.prompt('URL de la imagen:')
     if (url) {
-      editor?.chain().focus().setImage({ src: url }).run()
+      editor?.chain().focus().insertImage({ src: url }).run()
     }
   }, [editor])
 
@@ -252,6 +308,7 @@ export function RichTextEditor({
           editor={editor} 
           onImageUpload={onImageUpload ? addImage : undefined}
           onImageFromUrl={addImageFromUrl}
+          showTableActions={showTableActions}
         />
       </div>
 
@@ -265,6 +322,7 @@ export function RichTextEditor({
               editor={editor}
               onImageUpload={onImageUpload ? addImage : undefined}
               onImageFromUrl={addImageFromUrl}
+              showTableActions={showTableActions}
             />
           </div>
         </div>

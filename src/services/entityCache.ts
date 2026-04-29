@@ -99,6 +99,7 @@ function patchCalendarTasks(queryClient: QueryClient, tarea: Tarea) {
         prioridad: tarea.prioridad,
         hora: tarea.hora_limite || null,
         materia_color: tarea.materia?.color || null,
+        materia_nombre: tarea.materia?.nombre || null,
       })
       nextEventos[targetDay] = dayEvents
       changed = true

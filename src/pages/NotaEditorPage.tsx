@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { notasService } from '@/services/notas.service'
@@ -236,8 +236,9 @@ export function NotaEditorPage() {
               {nota?.origen_audio && notaStatus !== 'processing' && (
                 <Button
                   variant="outline"
-                  onClick={() => notaId && reprocessMutation.mutate(notaId)}
+                  onClick={(e) => notaId && reprocessMutation.mutate({ id: notaId, forceRetranscribe: e.shiftKey })}
                   disabled={reprocessMutation.isPending}
+                  title="Click para reprocesar con IA. Shift+Click para re-transcribir el audio completo."
                 >
                   <RotateCw className={'h-4 w-4 mr-2' + (reprocessMutation.isPending ? ' animate-spin' : '')} />
                   Reprocesar

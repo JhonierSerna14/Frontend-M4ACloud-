@@ -66,14 +66,12 @@ export function useNotaProgress(notaId?: number | null) {
 
     // Derivar host/protocol del VITE_API_URL si está definido (deploy en cloud)
     // En local usa window.location para que el proxy de Vite funcione
-    let apiUrl = import.meta.env.VITE_API_URL as string | undefined
+    const apiUrl = import.meta.env.VITE_API_URL as string | undefined
     let wsBase: string
     if (apiUrl) {
-      if (apiUrl.endsWith('/api')) {
-        apiUrl += '/v1'
-      }
       // Convertir https://... → wss://... y http://... → ws://...
       wsBase = apiUrl.replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://')
+      // wsBase ya incluye el prefijo /api (e.g. wss://backend.onrender.com/api)
     } else {
       const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
       wsBase = `${proto}://${window.location.host}/api`

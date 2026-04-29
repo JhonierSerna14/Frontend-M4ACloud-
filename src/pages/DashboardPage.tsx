@@ -214,6 +214,7 @@ export function DashboardPage() {
                     className="block rounded-md border p-2 hover:bg-muted/40 transition-colors"
                   >
                     <p className="text-sm font-medium truncate">{event.titulo}</p>
+                    <p className="text-xs text-muted-foreground truncate">{event.materia_nombre ? `Materia: ${event.materia_nombre}` : 'Materia no asignada'}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant={event.estado === 'completada' ? 'success' : event.estado === 'en_progreso' ? 'secondary' : 'warning'}>
                         {event.estado === 'completada' ? 'Finalizada' : event.estado === 'en_progreso' ? 'En proceso' : 'Pendiente'}

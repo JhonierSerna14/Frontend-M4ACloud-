@@ -7,15 +7,10 @@ import {
 } from '@/services/entityCache'
 
 function toWsBase() {
-  let apiUrl = import.meta.env.VITE_API_URL as string | undefined
+  const apiUrl = import.meta.env.VITE_API_URL as string | undefined
   if (apiUrl) {
-    // Asegurar que use /v1 en producción si no se especificó
-    if (apiUrl.endsWith('/api')) {
-      apiUrl += '/v1'
-    }
     return apiUrl.replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://')
   }
-  // En local, /api es interceptado por el proxy de Vite y reescrito a /api/v1
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
   return `${proto}://${window.location.host}/api`
 }

@@ -1,4 +1,4 @@
-﻿import api from './api'
+import api from './api'
 import { cachedGet, markTagsDirty, paramsToKey } from './browserCache'
 import type { Nota, NotaCreate, NotaUpdate, Adjunto } from '@/types'
 
@@ -55,8 +55,8 @@ export const notasService = {
     markTagsDirty(['notas', 'dashboard', 'materias', `nota:${id}`])
   },
 
-  reprocess: async (id: number): Promise<Nota> => {
-    const response = await api.post('/notas/' + id + '/reprocess')
+  reprocess: async ({ id, forceRetranscribe }: { id: number; forceRetranscribe?: boolean }): Promise<Nota> => {
+    const response = await api.post('/notas/' + id + '/reprocess' + (forceRetranscribe ? '?force_retranscribe=true' : ''))
     markTagsDirty(['notas', `nota:${id}`])
     return response.data
   },

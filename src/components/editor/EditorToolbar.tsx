@@ -10,9 +10,10 @@ interface EditorToolbarProps {
   editor: Editor
   onImageUpload?: () => void
   onImageFromUrl?: () => void
+  showTableActions?: boolean
 }
 
-export function EditorToolbar({ editor, onImageUpload, onImageFromUrl }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onImageUpload, onImageFromUrl, showTableActions = false }: EditorToolbarProps) {
   const setLink = () => {
     const previousUrl = editor.getAttributes('link').href
     const url = window.prompt('URL del enlace:', previousUrl)
@@ -207,48 +208,52 @@ export function EditorToolbar({ editor, onImageUpload, onImageFromUrl }: EditorT
       >
         <Table className="h-4 w-4" />
       </ToolButton>
-      <ToolButton
-        onClick={() => editor.chain().focus().addColumnBefore().run()}
-        title="Agregar columna izquierda"
-      >
-        C+
-      </ToolButton>
-      <ToolButton
-        onClick={() => editor.chain().focus().addColumnAfter().run()}
-        title="Agregar columna derecha"
-      >
-        +C
-      </ToolButton>
-      <ToolButton
-        onClick={() => editor.chain().focus().deleteColumn().run()}
-        title="Eliminar columna"
-      >
-        C-
-      </ToolButton>
-      <ToolButton
-        onClick={() => editor.chain().focus().addRowBefore().run()}
-        title="Agregar fila arriba"
-      >
-        F+
-      </ToolButton>
-      <ToolButton
-        onClick={() => editor.chain().focus().addRowAfter().run()}
-        title="Agregar fila abajo"
-      >
-        +F
-      </ToolButton>
-      <ToolButton
-        onClick={() => editor.chain().focus().deleteRow().run()}
-        title="Eliminar fila"
-      >
-        F-
-      </ToolButton>
-      <ToolButton
-        onClick={() => editor.chain().focus().deleteTable().run()}
-        title="Eliminar tabla"
-      >
-        T-
-      </ToolButton>
+      {showTableActions && (
+        <>
+          <ToolButton
+            onClick={() => editor.chain().focus().addColumnBefore().run()}
+            title="Agregar columna izquierda"
+          >
+            C+
+          </ToolButton>
+          <ToolButton
+            onClick={() => editor.chain().focus().addColumnAfter().run()}
+            title="Agregar columna derecha"
+          >
+            +C
+          </ToolButton>
+          <ToolButton
+            onClick={() => editor.chain().focus().deleteColumn().run()}
+            title="Eliminar columna"
+          >
+            C-
+          </ToolButton>
+          <ToolButton
+            onClick={() => editor.chain().focus().addRowBefore().run()}
+            title="Agregar fila arriba"
+          >
+            F+
+          </ToolButton>
+          <ToolButton
+            onClick={() => editor.chain().focus().addRowAfter().run()}
+            title="Agregar fila abajo"
+          >
+            +F
+          </ToolButton>
+          <ToolButton
+            onClick={() => editor.chain().focus().deleteRow().run()}
+            title="Eliminar fila"
+          >
+            F-
+          </ToolButton>
+          <ToolButton
+            onClick={() => editor.chain().focus().deleteTable().run()}
+            title="Eliminar tabla"
+          >
+            T-
+          </ToolButton>
+        </>
+      )}
     </div>
   )
 }
