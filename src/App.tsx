@@ -2,6 +2,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
+import { SemestreProvider } from '@/context/SemestreContext'
 import { NotificationProvider } from '@/context/NotificationContext'
 import { MainLayout } from '@/components/layout'
 import { Loading } from '@/components/ui'
@@ -165,11 +166,13 @@ export default function App() {
         <CacheRevalidationBridge />
         <BrowserRouter>
           <AuthProvider>
-            <NotificationProvider>
-              <CrudSyncBridge />
-              <ProcessingRestorer />
-              <AppRoutes />
-            </NotificationProvider>
+            <SemestreProvider>
+              <NotificationProvider>
+                <CrudSyncBridge />
+                <ProcessingRestorer />
+                <AppRoutes />
+              </NotificationProvider>
+            </SemestreProvider>
           </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>

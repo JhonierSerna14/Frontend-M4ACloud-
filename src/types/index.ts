@@ -6,6 +6,21 @@ export interface Usuario {
   fecha_creacion: string
 }
 
+export interface Semestre {
+  id: number
+  codigo: string
+  nombre?: string
+  total_materias?: number
+  es_actual: boolean
+  es_editable: boolean
+  fecha_creacion: string
+}
+
+export interface SemestreCreate {
+  codigo: string
+  nombre?: string
+}
+
 export interface Materia {
   id: number
   nombre: string
@@ -13,6 +28,7 @@ export interface Materia {
   contenido_html?: string
   color?: string
   usuario_id: number
+  semestre_id?: number
   total_notas?: number
   total_tareas?: number
   total_archivos?: number

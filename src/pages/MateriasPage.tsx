@@ -7,6 +7,7 @@ import { useNotification } from '@/context/NotificationContext'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
 import { RichTextEditor } from '@/components/editor'
 import { removeMateriaFromCache, upsertMateriaInCache } from '@/services/entityCache'
+import { useSemestre } from '@/context/SemestreContext'
 import type { Materia, MateriaCreate } from '@/types'
 
 const COLORES = [
@@ -26,6 +27,7 @@ export function MateriasPage() {
   const queryClient = useQueryClient()
   const { success, error } = useNotification()
   const deleteConfirm = useDeleteConfirmation<Materia>()
+  const { semestreActual, esEditable } = useSemestre()
 
   const { data: materias, isLoading } = useQuery({
     queryKey: ['materias'],
@@ -140,14 +142,33 @@ export function MateriasPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Materias</h1>
-          <p className="text-muted-foreground">Administra tus materias del semestre</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">Materias</h1>
+            {semestreActual && (
+              <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/10 text-primary">
+                {semestreActual.codigo}
+              </span>
+            )}
+          </div>
+          <p className="text-muted-foreground">
+            {esEditable
+              ? 'Administra tus materias del semestre'
+              : `Viendo archivo: ${semestreActual?.codigo} (solo lectura)`}
+          </p>
         </div>
-        <Button onClick={openCreateModal}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nueva Materia
-        </Button>
+        {esEditable && (
+          <Button onClick={openCreateModal}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Materia
+          </Button>
+        )}
       </div>
+
+      {!esEditable && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Estás viendo un semestre archivado. Cambia al semestre más reciente para crear o editar materias.
+        </div>
+      )}
 
       {materias && materias.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -180,18 +201,22 @@ export function MateriasPage() {
                     </div>
                   </div>
                   <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      onClick={() => openEditModal(materia)}
-                      className="p-1.5 rounded hover:bg-muted transition-colors"
-                    >
-                      <Edit2 className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                    <button
-                      onClick={() => deleteConfirm.requestDelete(materia)}
-                      className="p-1.5 rounded hover:bg-muted transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4 text-muted-foreground" />
-                    </button>
+                    {esEditable && (
+                      <>
+                        <button 
+                          onClick={() => openEditModal(materia)}
+                          className="p-1.5 rounded hover:bg-muted transition-colors"
+                        >
+                          <Edit2 className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                        <button
+                          onClick={() => deleteConfirm.requestDelete(materia)}
+                          className="p-1.5 rounded hover:bg-muted transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -203,11 +228,15 @@ export function MateriasPage() {
           <CardContent className="p-12 text-center">
             <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No tienes materias</h3>
-            <p className="text-muted-foreground mb-4">Crea tu primera materia para empezar</p>
-            <Button onClick={openCreateModal}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva Materia
-            </Button>
+            <p className="text-muted-foreground mb-4">
+              {esEditable ? 'Crea tu primera materia para empezar' : 'Este semestre no tiene materias'}
+            </p>
+            {esEditable && (
+              <Button onClick={openCreateModal}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nueva Materia
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -282,15 +311,18 @@ export function MateriasPage() {
               content={contenidoHtml}
               onChange={setContenidoHtml}
               placeholder="Escribe o pega contenido aquí..."
+              editable={esEditable}
             />
           )}
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={closeContentModal}>
-              Cancelar
+              {esEditable ? 'Cancelar' : 'Cerrar'}
             </Button>
-            <Button onClick={handleSaveContent} disabled={updateContentMutation.isPending || loadingContent}>
-              {updateContentMutation.isPending ? 'Guardando...' : 'Guardar'}
-            </Button>
+            {esEditable && (
+              <Button onClick={handleSaveContent} disabled={updateContentMutation.isPending || loadingContent}>
+                {updateContentMutation.isPending ? 'Guardando...' : 'Guardar'}
+              </Button>
+            )}
           </div>
         </div>
       </Modal>

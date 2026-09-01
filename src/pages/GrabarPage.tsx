@@ -8,6 +8,7 @@ import { notasService } from '@/services/notas.service'
 import { Button, Card, CardContent, Input, Select } from '@/components/ui'
 import { Mic, Square, Loader2, FileText, Sparkles, Upload, AlertCircle } from 'lucide-react'
 import { useNotification } from '@/context/NotificationContext'
+import { useSemestre } from '@/context/SemestreContext'
 import ProcessingToast from '@/components/ProcessingToast'
 import { processingTracker } from '@/services/processingTracker'
 
@@ -53,6 +54,7 @@ export function GrabarPage() {
   
   const queryClient = useQueryClient()
   const { success, error, info, loading, update, dismiss } = useNotification()
+  const { esEditable } = useSemestre()
   const [processing, setProcessing] = useState<Array<{notaId:number; notifId:string}>>([])
   const sharedAudioId = searchParams.get('sharedAudio')
   const sharedAudioName = searchParams.get('sharedName') || 'audio-compartido'
@@ -325,6 +327,12 @@ export function GrabarPage() {
         <p className="text-muted-foreground">Graba tu clase y obtén un resumen automático con IA</p>
       </div>
 
+      {!esEditable && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 text-center">
+          Estás viendo un semestre archivado. Cambia al semestre más reciente para grabar o subir audio.
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-8">
           <div className="flex flex-col items-center">
@@ -383,31 +391,37 @@ export function GrabarPage() {
               </>
             ) : (
               <>
-                <button
-                  onClick={startRecording}
-                  className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
-                >
-                  <Mic className="h-10 w-10 text-primary" />
-                </button>
-                <p className="text-lg font-medium mt-4">Toca para grabar</p>
-                <p className="text-muted-foreground">o sube un archivo de audio</p>
-                <label className="mt-4 cursor-pointer flex items-center gap-2 text-primary hover:underline">
-                  <Upload className="h-4 w-4" />
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                  />
-                  <span>Subir archivo</span>
-                </label>
+                {esEditable ? (
+                  <>
+                    <button
+                      onClick={startRecording}
+                      className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
+                    >
+                      <Mic className="h-10 w-10 text-primary" />
+                    </button>
+                    <p className="text-lg font-medium mt-4">Toca para grabar</p>
+                    <p className="text-muted-foreground">o sube un archivo de audio</p>
+                    <label className="mt-4 cursor-pointer flex items-center gap-2 text-primary hover:underline">
+                      <Upload className="h-4 w-4" />
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                      <span>Subir archivo</span>
+                    </label>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground py-8">Grabación no disponible en semestres archivados</p>
+                )}
               </>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {state === 'ready' && audioFile && (
+      {state === 'ready' && audioFile && esEditable && (
         <Card>
           <CardContent className="p-6 space-y-4">
             <h3 className="font-semibold flex items-center gap-2">

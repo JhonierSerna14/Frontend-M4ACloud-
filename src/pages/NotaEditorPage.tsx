@@ -7,6 +7,7 @@ import { Button, Card, CardContent, Input, Loading, Select, Modal } from '@/comp
 import { RichTextEditor } from '@/components/editor'
 import { ArrowLeft, Save, Download, Trash2, Loader2, Check, RotateCw } from 'lucide-react'
 import { useNotification } from '@/context/NotificationContext'
+import { useSemestre } from '@/context/SemestreContext'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useNotaProgress } from '@/hooks/useNotaProgress'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
@@ -23,6 +24,7 @@ export function NotaEditorPage() {
   const location = useLocation()
   const queryClient = useQueryClient()
   const { success, error, loading } = useNotification()
+  const { esEditable } = useSemestre()
   
   const isNew = !id || id === 'nueva'
   const notaId = isNew ? null : Number(id)
@@ -36,6 +38,12 @@ export function NotaEditorPage() {
   const [saved, setSaved] = useState(false)
   const notasSearch = location.search
   const refreshedAfterDoneRef = useRef(false)
+
+  useEffect(() => {
+    if (isNew && !esEditable) {
+      navigate('/notas', { replace: true })
+    }
+  }, [isNew, esEditable, navigate])
 
   const { data: nota, isLoading: isLoadingNota } = useQuery({
     queryKey: ['nota', notaId],
@@ -233,7 +241,7 @@ export function NotaEditorPage() {
                   </>
                 )}
               </Button>
-              {nota?.origen_audio && notaStatus !== 'processing' && (
+              {esEditable && nota?.origen_audio && notaStatus !== 'processing' && (
                 <Button
                   variant="outline"
                   onClick={(e) => notaId && reprocessMutation.mutate({ id: notaId, forceRetranscribe: e.shiftKey })}
@@ -244,10 +252,12 @@ export function NotaEditorPage() {
                   Reprocesar
                 </Button>
               )}
-              <Button variant="outline" onClick={() => notaId && deleteConfirm.requestDelete({ id: notaId })}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Eliminar
-              </Button>
+              {esEditable && (
+                <Button variant="outline" onClick={() => notaId && deleteConfirm.requestDelete({ id: notaId })}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Eliminar
+                </Button>
+              )}
 
               <Modal isOpen={deleteConfirm.isOpen} onClose={deleteConfirm.cancel} title="Confirmar eliminación">
                 <div className="space-y-4">
@@ -260,10 +270,12 @@ export function NotaEditorPage() {
               </Modal>
             </>
           )}
-          <Button onClick={handleSave} disabled={updateMutation.isPending || createMutation.isPending}>
-            <Save className="h-4 w-4 mr-2" />
-            {isNew ? 'Crear' : 'Guardar'}
-          </Button>
+          {esEditable && (
+            <Button onClick={handleSave} disabled={updateMutation.isPending || createMutation.isPending}>
+              <Save className="h-4 w-4 mr-2" />
+              {isNew ? 'Crear' : 'Guardar'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -276,6 +288,7 @@ export function NotaEditorPage() {
                 onChange={(e) => { setTitulo(e.target.value); setHasChanges(true); setSaved(false) }}
                 placeholder="Titulo de la nota"
                 className="text-lg font-semibold"
+                disabled={!esEditable}
               />
             </div>
             <div className="flex items-center gap-2">
@@ -284,6 +297,7 @@ export function NotaEditorPage() {
                 onChange={(e) => { setMateriaId(Number(e.target.value)); setHasChanges(true); setSaved(false) }}
                 placeholder="Seleccionar materia..."
                 options={materias?.map(m => ({ value: m.id, label: m.nombre })) || []}
+                disabled={!esEditable}
               />
               { (materias && (materias.find(m => m.id === materiaId) || nota?.materia_color)) && (
                 <span className="inline-flex items-center gap-2">
@@ -300,6 +314,7 @@ export function NotaEditorPage() {
               value={fechaClase}
               onChange={(e) => { setFechaClase(e.target.value); setHasChanges(true); setSaved(false) }}
               className="w-auto"
+              disabled={!esEditable}
             />
           </div>
         </CardContent>
@@ -309,7 +324,8 @@ export function NotaEditorPage() {
         content={contenido}
         onChange={handleContentChange}
         placeholder="Escribe tus apuntes aqui..."
-        onImageUpload={notaId ? handleImageUpload : undefined}
+        onImageUpload={notaId && esEditable ? handleImageUpload : undefined}
+        editable={esEditable}
       />
 
       {/* Save indicator: fixed icon top-right, visible regardless of scroll */}

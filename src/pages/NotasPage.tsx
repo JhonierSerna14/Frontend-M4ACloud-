@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, Button, Input, Loading, Badge
 import { Plus, FileText, Download, Search, Loader2 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { usePdfExport } from '@/hooks/usePdfExport'
+import { useSemestre } from '@/context/SemestreContext'
 
 export function NotasPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -26,6 +27,7 @@ export function NotasPage() {
   const [searchText, setSearchText] = useState(initialBusqueda)
 
   const { exportingId, exportProgress, exportPdf } = usePdfExport()
+  const { esEditable } = useSemestre()
 
   const { data: notas, isLoading } = useQuery({
     queryKey: ['notas', { fechaDesde, fechaHasta, materiaId, busqueda }],
@@ -63,12 +65,14 @@ export function NotasPage() {
           <h1 className="text-2xl font-bold">Notas</h1>
           <p className="text-muted-foreground">Tus apuntes de clase</p>
         </div>
-        <Link to="/notas/nueva">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva Nota
-          </Button>
-        </Link>
+        {esEditable && (
+          <Link to="/notas/nueva">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Nueva Nota
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Card>
@@ -183,13 +187,17 @@ export function NotasPage() {
           <CardContent className="p-12 text-center">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No hay notas</h3>
-            <p className="text-muted-foreground mb-4">Crea tu primera nota para empezar</p>
-            <Link to="/notas/nueva">
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Nueva Nota
-              </Button>
-            </Link>
+            <p className="text-muted-foreground mb-4">
+              {esEditable ? 'Crea tu primera nota para empezar' : 'Este semestre no tiene notas'}
+            </p>
+            {esEditable && (
+              <Link to="/notas/nueva">
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva Nota
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       )}

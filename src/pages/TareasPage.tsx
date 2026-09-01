@@ -9,6 +9,7 @@ import { formatDate, getDaysUntil } from '@/lib/utils'
 import { useNotification } from '@/context/NotificationContext'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
 import { removeTareaFromCache, patchTareasOrderInCache, upsertTareaInCache } from '@/services/entityCache'
+import { useSemestre } from '@/context/SemestreContext'
 import type { Tarea, TareaCreate } from '@/types'
 
 const TIPOS = [
@@ -74,6 +75,7 @@ export function TareasPage() {
   const queryClient = useQueryClient()
   const { success, error } = useNotification()
   const deleteConfirm = useDeleteConfirmation<Tarea>()
+  const { esEditable } = useSemestre()
 
   const { data: tareas, isLoading } = useQuery({
     queryKey: ['tareas'],
@@ -350,8 +352,8 @@ export function TareasPage() {
       <Card
         key={column.key}
         className={'border-2 ' + column.tone}
-        onDragOver={handleDragOver}
-        onDrop={() => handleDropToEstado(column.key)}
+        onDragOver={esEditable ? handleDragOver : undefined}
+        onDrop={esEditable ? () => handleDropToEstado(column.key) : undefined}
       >
         <CardContent className="p-3">
           <div className="flex items-center justify-between mb-3">
@@ -371,15 +373,15 @@ export function TareasPage() {
               return (
                 <Card
                   key={tarea.id}
-                  className={'cursor-grab active:cursor-grabbing border shadow-sm hover:shadow-md transition-shadow ' + (isCompleted ? 'opacity-70' : '')}
-                  draggable
-                  onDragStart={() => handleDragStart(tarea.id)}
-                  onDragEnd={() => setDraggedTaskId(null)}
-                  onDragOver={column.key === 'pendiente' ? (e) => {
+                  className={'border shadow-sm hover:shadow-md transition-shadow ' + (esEditable ? 'cursor-grab active:cursor-grabbing ' : '') + (isCompleted ? 'opacity-70' : '')}
+                  draggable={esEditable}
+                  onDragStart={esEditable ? () => handleDragStart(tarea.id) : undefined}
+                  onDragEnd={esEditable ? () => setDraggedTaskId(null) : undefined}
+                  onDragOver={esEditable && column.key === 'pendiente' ? (e) => {
                     e.preventDefault()
                     e.stopPropagation()
                   } : undefined}
-                  onDrop={column.key === 'pendiente' ? (e) => {
+                  onDrop={esEditable && column.key === 'pendiente' ? (e) => {
                     e.preventDefault()
                     e.stopPropagation()
                     handleDropWithinPendientes(tarea.id)
@@ -390,16 +392,18 @@ export function TareasPage() {
                       <h4 className={'font-medium text-sm leading-tight cursor-pointer hover:text-primary ' + (isCompleted ? 'line-through' : '')}>
                         {tarea.titulo}
                       </h4>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          deleteConfirm.requestDelete(tarea)
-                        }}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {esEditable && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deleteConfirm.requestDelete(tarea)
+                          }}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -434,24 +438,26 @@ export function TareasPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center justify-end gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
-                      {quickActions.map((action, index) => (
-                        <button
-                          key={tarea.id + '-' + action.next + '-' + index}
-                          type="button"
-                          onClick={() => handleQuickStatusChange(tarea, action.next)}
-                          disabled={isUpdatingThisTask}
-                          title={action.label}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {action.dir === 'left' ? (
-                            <ChevronLeft className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                    {esEditable && (
+                      <div className="flex items-center justify-end gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
+                        {quickActions.map((action, index) => (
+                          <button
+                            key={tarea.id + '-' + action.next + '-' + index}
+                            type="button"
+                            onClick={() => handleQuickStatusChange(tarea, action.next)}
+                            disabled={isUpdatingThisTask}
+                            title={action.label}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {action.dir === 'left' ? (
+                              <ChevronLeft className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )
@@ -515,10 +521,12 @@ export function TareasPage() {
         <div>
           <h1 className="text-2xl font-bold">Tablero de Tareas</h1>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nueva Tarea
-        </Button>
+        {esEditable && (
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Tarea
+          </Button>
+        )}
       </div>
 
       {/* Desktop filters */}
@@ -614,11 +622,15 @@ export function TareasPage() {
           <CardContent className="p-12 text-center">
             <CheckSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No hay tareas</h3>
-            <p className="text-muted-foreground mb-4">Crea tu primera tarea para empezar tu tablero</p>
-            <Button onClick={() => setIsModalOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva Tarea
-            </Button>
+            <p className="text-muted-foreground mb-4">
+              {esEditable ? 'Crea tu primera tarea para empezar tu tablero' : 'Este semestre no tiene tareas'}
+            </p>
+            {esEditable && (
+              <Button onClick={() => setIsModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nueva Tarea
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -705,7 +717,7 @@ export function TareasPage() {
       </Modal>
 
       {selectedTarea && (
-        <Modal isOpen={!!selectedTarea} onClose={closeDetailModal} title="Editar Tarea" size="lg">
+        <Modal isOpen={!!selectedTarea} onClose={closeDetailModal} title={esEditable ? 'Editar Tarea' : 'Ver Tarea'} size="lg">
           <form onSubmit={handleEditSubmit} className="space-y-4">
             <div>
               <label className="text-sm font-medium">Titulo</label>
@@ -714,6 +726,7 @@ export function TareasPage() {
                 onChange={(e) => setEditFormData({ ...editFormData, titulo: e.target.value })}
                 placeholder="Ej: Entrega proyecto final"
                 className="mt-1"
+                disabled={!esEditable}
               />
             </div>
 
@@ -724,6 +737,7 @@ export function TareasPage() {
                 onChange={(e) => setEditFormData({ ...editFormData, descripcion: e.target.value })}
                 placeholder="Detalles adicionales..."
                 className="mt-1"
+                disabled={!esEditable}
               />
             </div>
 
@@ -735,6 +749,7 @@ export function TareasPage() {
                   onChange={(e) => setEditFormData({ ...editFormData, materia_id: Number(e.target.value) })}
                   options={materias?.map(m => ({ value: m.id, label: m.nombre })) || []}
                   className="mt-1"
+                  disabled={!esEditable}
                 />
               </div>
 
@@ -749,6 +764,7 @@ export function TareasPage() {
                     { value: 'completada', label: 'Completada' }
                   ]}
                   className="mt-1"
+                  disabled={!esEditable}
                 />
               </div>
             </div>
@@ -761,6 +777,7 @@ export function TareasPage() {
                   onChange={(e) => setEditFormData({ ...editFormData, tipo: e.target.value })}
                   options={TIPOS.map(t => ({ value: t.value, label: t.label }))}
                   className="mt-1"
+                  disabled={!esEditable}
                 />
               </div>
 
@@ -775,6 +792,7 @@ export function TareasPage() {
                     { value: 2, label: 'Urgente' }
                   ]}
                   className="mt-1"
+                  disabled={!esEditable}
                 />
               </div>
             </div>
@@ -787,6 +805,7 @@ export function TareasPage() {
                   value={editFormData.fecha_limite || ''}
                   onChange={(e) => setEditFormData({ ...editFormData, fecha_limite: e.target.value })}
                   className="mt-1"
+                  disabled={!esEditable}
                 />
               </div>
 
@@ -797,15 +816,20 @@ export function TareasPage() {
                   value={editFormData.hora_limite || ''}
                   onChange={(e) => setEditFormData({ ...editFormData, hora_limite: e.target.value })}
                   className="mt-1"
+                  disabled={!esEditable}
                 />
               </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={closeDetailModal}>Cancelar</Button>
-              <Button type="submit" disabled={isSavingEdit || !editFormData.titulo || !editFormData.materia_id || !editFormData.fecha_limite}>
-                {isSavingEdit ? 'Guardando...' : 'Guardar cambios'}
+              <Button type="button" variant="outline" onClick={closeDetailModal}>
+                {esEditable ? 'Cancelar' : 'Cerrar'}
               </Button>
+              {esEditable && (
+                <Button type="submit" disabled={isSavingEdit || !editFormData.titulo || !editFormData.materia_id || !editFormData.fecha_limite}>
+                  {isSavingEdit ? 'Guardando...' : 'Guardar cambios'}
+                </Button>
+              )}
             </div>
           </form>
         </Modal>

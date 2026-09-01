@@ -7,6 +7,7 @@ import { dashboardService } from '@/services/dashboard.service'
 import { tareasService } from '@/services/tareas.service'
 import { Card, CardContent, CardHeader, CardTitle, Loading, Badge } from '@/components/ui'
 import { BookOpen, FileText, CheckSquare, Mic, Plus, Calendar, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+import { useSemestre } from '@/context/SemestreContext'
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom']
 
@@ -16,6 +17,7 @@ export function DashboardPage() {
     return new Date(today.getFullYear(), today.getMonth(), 1)
   })
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
+  const { semestreActual, esEditable } = useSemestre()
 
   const { data: dashboard, isLoading } = useQuery({
     queryKey: ['dashboard'],
@@ -232,10 +234,12 @@ export function DashboardPage() {
       </Card>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Link to="/notas/nueva" className="p-4 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50 transition-colors flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
-          <Plus className="h-8 w-8" />
-          <span>Nueva Nota</span>
-        </Link>
+        {esEditable && (
+          <Link to="/notas/nueva" className="p-4 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50 transition-colors flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
+            <Plus className="h-8 w-8" />
+            <span>Nueva Nota</span>
+          </Link>
+        )}
         <Link to="/materias" className="p-4 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50 transition-colors flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
           <BookOpen className="h-8 w-8" />
           <span>Ver Materias</span>
@@ -244,10 +248,17 @@ export function DashboardPage() {
           <CheckSquare className="h-8 w-8" />
           <span>Ver Tareas</span>
         </Link>
-        <Link to="/grabar" className="p-4 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50 transition-colors flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
-          <Mic className="h-8 w-8" />
-          <span>Grabar Audio</span>
-        </Link>
+        {esEditable ? (
+          <Link to="/grabar" className="p-4 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50 transition-colors flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
+            <Mic className="h-8 w-8" />
+            <span>Grabar Audio</span>
+          </Link>
+        ) : (
+          <div className="p-4 rounded-lg border-2 border-dashed border-muted-foreground/15 flex flex-col items-center gap-2 text-muted-foreground/60">
+            <Mic className="h-8 w-8" />
+            <span>{semestreActual?.codigo} (archivo)</span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
