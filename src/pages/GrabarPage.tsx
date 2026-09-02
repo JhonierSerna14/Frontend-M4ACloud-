@@ -8,7 +8,7 @@ import { notasService } from '@/services/notas.service'
 import { Button, Card, CardContent, Input, Select } from '@/components/ui'
 import { Mic, Square, Loader2, FileText, Sparkles, Upload, AlertCircle } from 'lucide-react'
 import { useNotification } from '@/context/NotificationContext'
-import { useSemestre } from '@/context/SemestreContext'
+import { useSemestreScope, useOnSemestreChange } from '@/hooks/useSemestreScope'
 import ProcessingToast from '@/components/ProcessingToast'
 import { processingTracker } from '@/services/processingTracker'
 
@@ -54,15 +54,20 @@ export function GrabarPage() {
   
   const queryClient = useQueryClient()
   const { success, error, info, loading, update, dismiss } = useNotification()
-  const { esEditable } = useSemestre()
+  const { esEditable, semestreId } = useSemestreScope()
   const [processing, setProcessing] = useState<Array<{notaId:number; notifId:string}>>([])
   const sharedAudioId = searchParams.get('sharedAudio')
   const sharedAudioName = searchParams.get('sharedName') || 'audio-compartido'
   const shareError = searchParams.get('shareError')
 
+  useOnSemestreChange(() => {
+    setMateriaId(0)
+  })
+
   const { data: materias } = useQuery({
-    queryKey: ['materias'],
-    queryFn: materiasService.getAll
+    queryKey: ['materias', semestreId],
+    queryFn: materiasService.getAll,
+    enabled: semestreId !== undefined,
   })
 
   const startRecording = useCallback(async () => {

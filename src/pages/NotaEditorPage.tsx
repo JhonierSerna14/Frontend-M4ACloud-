@@ -7,7 +7,7 @@ import { Button, Card, CardContent, Input, Loading, Select, Modal } from '@/comp
 import { RichTextEditor } from '@/components/editor'
 import { ArrowLeft, Save, Download, Trash2, Loader2, Check, RotateCw } from 'lucide-react'
 import { useNotification } from '@/context/NotificationContext'
-import { useSemestre } from '@/context/SemestreContext'
+import { useSemestreScope } from '@/hooks/useSemestreScope'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useNotaProgress } from '@/hooks/useNotaProgress'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
@@ -24,7 +24,7 @@ export function NotaEditorPage() {
   const location = useLocation()
   const queryClient = useQueryClient()
   const { success, error, loading } = useNotification()
-  const { esEditable } = useSemestre()
+  const { esEditable, semestreId } = useSemestreScope()
   
   const isNew = !id || id === 'nueva'
   const notaId = isNew ? null : Number(id)
@@ -69,8 +69,9 @@ export function NotaEditorPage() {
   }, [notaId, notaStatus, queryClient])
 
   const { data: materias } = useQuery({
-    queryKey: ['materias'],
-    queryFn: materiasService.getAll
+    queryKey: ['materias', semestreId],
+    queryFn: materiasService.getAll,
+    enabled: semestreId !== undefined,
   })
 
   useEffect(() => {

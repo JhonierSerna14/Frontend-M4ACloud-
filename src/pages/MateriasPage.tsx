@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+﻿import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { materiasService } from '@/services/materias.service'
 import { Button, Card, CardContent, Input, Loading, Modal } from '@/components/ui'
@@ -7,7 +7,7 @@ import { useNotification } from '@/context/NotificationContext'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
 import { RichTextEditor } from '@/components/editor'
 import { removeMateriaFromCache, upsertMateriaInCache } from '@/services/entityCache'
-import { useSemestre } from '@/context/SemestreContext'
+import { useSemestreScope, useOnSemestreChange } from '@/hooks/useSemestreScope'
 import type { Materia, MateriaCreate } from '@/types'
 
 const COLORES = [
@@ -27,12 +27,25 @@ export function MateriasPage() {
   const queryClient = useQueryClient()
   const { success, error } = useNotification()
   const deleteConfirm = useDeleteConfirmation<Materia>()
-  const { semestreActual, esEditable } = useSemestre()
+  const { semestreActual, semestreId, esEditable } = useSemestreScope()
 
   const { data: materias, isLoading } = useQuery({
-    queryKey: ['materias'],
-    queryFn: materiasService.getAll
+    queryKey: ['materias', semestreId],
+    queryFn: materiasService.getAll,
+    enabled: semestreId !== undefined,
   })
+
+  const resetPageState = useCallback(() => {
+    setIsModalOpen(false)
+    setIsContentModalOpen(false)
+    setEditingMateria(null)
+    setContentMateria(null)
+    setContenidoHtml('')
+    setLoadingContent(false)
+    deleteConfirm.cancel()
+  }, [deleteConfirm])
+
+  useOnSemestreChange(resetPageState)
 
   const createMutation = useMutation({
     mutationFn: materiasService.create,

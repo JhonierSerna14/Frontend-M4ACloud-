@@ -7,7 +7,7 @@ import { dashboardService } from '@/services/dashboard.service'
 import { tareasService } from '@/services/tareas.service'
 import { Card, CardContent, CardHeader, CardTitle, Loading, Badge } from '@/components/ui'
 import { BookOpen, FileText, CheckSquare, Mic, Plus, Calendar, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
-import { useSemestre } from '@/context/SemestreContext'
+import { useSemestreScope } from '@/hooks/useSemestreScope'
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom']
 
@@ -17,16 +17,18 @@ export function DashboardPage() {
     return new Date(today.getFullYear(), today.getMonth(), 1)
   })
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
-  const { semestreActual, esEditable } = useSemestre()
+  const { semestreActual, esEditable, semestreId } = useSemestreScope()
 
   const { data: dashboard, isLoading } = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: dashboardService.getDashboard
+    queryKey: ['dashboard', semestreId],
+    queryFn: dashboardService.getDashboard,
+    enabled: semestreId !== undefined,
   })
 
   const { data: calendario } = useQuery({
-    queryKey: ['tareas', 'calendario', currentMonth.getMonth() + 1, currentMonth.getFullYear()],
-    queryFn: () => tareasService.getCalendario(currentMonth.getMonth() + 1, currentMonth.getFullYear())
+    queryKey: ['tareas', 'calendario', semestreId, currentMonth.getMonth() + 1, currentMonth.getFullYear()],
+    queryFn: () => tareasService.getCalendario(currentMonth.getMonth() + 1, currentMonth.getFullYear()),
+    enabled: semestreId !== undefined,
   })
 
   const eventosPorDia = calendario?.eventos || {}

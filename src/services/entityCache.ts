@@ -33,10 +33,13 @@ function updateMatchingArrayQueries<T extends { id: number }>(
 }
 
 function patchDashboard(queryClient: QueryClient, updater: (current: DashboardData) => DashboardData) {
-  queryClient.setQueryData<DashboardData>(['dashboard'], (current) => {
-    if (!current) return current
-    return updater(current)
-  })
+  const queries = queryClient.getQueryCache().findAll({ queryKey: ['dashboard'] })
+  for (const query of queries) {
+    queryClient.setQueryData<DashboardData>(query.queryKey, (current) => {
+      if (!current) return current
+      return updater(current)
+    })
+  }
 }
 
 function uniqueById<T extends { id: number }>(items: T[]) {

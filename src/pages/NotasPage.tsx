@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+﻿import { useCallback, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { notasService } from '@/services/notas.service'
@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, Button, Input, Loading, Badge
 import { Plus, FileText, Download, Search, Loader2 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { usePdfExport } from '@/hooks/usePdfExport'
-import { useSemestre } from '@/context/SemestreContext'
+import { useSemestreScope, useOnSemestreChange } from '@/hooks/useSemestreScope'
 
 export function NotasPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -27,22 +27,33 @@ export function NotasPage() {
   const [searchText, setSearchText] = useState(initialBusqueda)
 
   const { exportingId, exportProgress, exportPdf } = usePdfExport()
-  const { esEditable } = useSemestre()
+  const { esEditable, semestreId } = useSemestreScope()
+
+  const resetFilters = useCallback(() => {
+    setMateriaId(undefined)
+    setFechaDesde('')
+    setFechaHasta('')
+    setBusqueda('')
+    setSearchText('')
+  }, [])
+
+  useOnSemestreChange(resetFilters)
 
   const { data: notas, isLoading } = useQuery({
-    queryKey: ['notas', { fechaDesde, fechaHasta, materiaId, busqueda }],
+    queryKey: ['notas', semestreId, { fechaDesde, fechaHasta, materiaId, busqueda }],
     queryFn: () => notasService.getAll({
       fecha_desde: fechaDesde || undefined,
       fecha_hasta: fechaHasta || undefined,
       materia_id: materiaId,
       search: busqueda || undefined
     }),
-    placeholderData: (previousData) => previousData
+    enabled: semestreId !== undefined,
   })
 
   const { data: materias } = useQuery({
-    queryKey: ['materias'],
-    queryFn: materiasService.getAll
+    queryKey: ['materias', semestreId],
+    queryFn: materiasService.getAll,
+    enabled: semestreId !== undefined,
   })
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, useRef } from 'react'
+﻿import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import { tareasService } from '@/services/tareas.service'
@@ -9,7 +9,7 @@ import { formatDate, getDaysUntil } from '@/lib/utils'
 import { useNotification } from '@/context/NotificationContext'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
 import { removeTareaFromCache, patchTareasOrderInCache, upsertTareaInCache } from '@/services/entityCache'
-import { useSemestre } from '@/context/SemestreContext'
+import { useSemestreScope, useOnSemestreChange } from '@/hooks/useSemestreScope'
 import type { Tarea, TareaCreate } from '@/types'
 
 const TIPOS = [
@@ -75,16 +75,33 @@ export function TareasPage() {
   const queryClient = useQueryClient()
   const { success, error } = useNotification()
   const deleteConfirm = useDeleteConfirmation<Tarea>()
-  const { esEditable } = useSemestre()
+  const navigate = useNavigate()
+  const { id } = useParams<{ id?: string }>()
+  const { esEditable, semestreId } = useSemestreScope()
+
+  const resetPageState = useCallback(() => {
+    setIsModalOpen(false)
+    setSelectedTarea(null)
+    setFilterMateriaId('')
+    setFilterTipo('')
+    setSearchText('')
+    setShowAllCompleted(false)
+    deleteConfirm.cancel()
+    if (id) navigate('/tareas', { replace: true })
+  }, [deleteConfirm, id, navigate])
+
+  useOnSemestreChange(resetPageState)
 
   const { data: tareas, isLoading } = useQuery({
-    queryKey: ['tareas'],
-    queryFn: tareasService.getAll
+    queryKey: ['tareas', semestreId],
+    queryFn: tareasService.getAll,
+    enabled: semestreId !== undefined,
   })
 
   const { data: materias } = useQuery({
-    queryKey: ['materias'],
-    queryFn: materiasService.getAll
+    queryKey: ['materias', semestreId],
+    queryFn: materiasService.getAll,
+    enabled: semestreId !== undefined,
   })
 
   const createMutation = useMutation({
@@ -103,10 +120,10 @@ export function TareasPage() {
     mutationFn: ({ id, data }: { id: number; data: Partial<TareaCreate> }) =>
       tareasService.update(id, data),
     onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: ['tareas'] })
-      const previousTareas = queryClient.getQueryData<Tarea[]>(['tareas'])
+      await queryClient.cancelQueries({ queryKey: ['tareas', semestreId] })
+      const previousTareas = queryClient.getQueryData<Tarea[]>(['tareas', semestreId])
 
-      queryClient.setQueryData<Tarea[]>(['tareas'], (old) => {
+      queryClient.setQueryData<Tarea[]>(['tareas', semestreId], (old) => {
         if (!old) return old
         return old.map((task) =>
           task.id === id
@@ -130,7 +147,7 @@ export function TareasPage() {
     },
     onError: (_err, _variables, context) => {
       if (context?.previousTareas) {
-        queryClient.setQueryData(['tareas'], context.previousTareas)
+        queryClient.setQueryData(['tareas', semestreId], context.previousTareas)
       }
       error('Error', 'No se pudo actualizar la tarea')
     }
@@ -160,8 +177,6 @@ export function TareasPage() {
     setFormData({ titulo: '', materia_id: 0, tipo: 'TAREA', fecha_limite: '', hora_limite: '', prioridad: 0 })
   }
 
-  const navigate = useNavigate()
-
   const handleTareaClick = (tarea: Tarea) => {
     // Navigate to tarea route which will open modal via useEffect
     navigate('/tareas/' + tarea.id)
@@ -170,11 +185,8 @@ export function TareasPage() {
   const closeDetailModal = () => {
     setSelectedTarea(null)
     setIsSavingEdit(false)
-    // remove id from URL when closing modal
     navigate('/tareas')
   }
-
-  const { id } = useParams<{ id?: string }>()
 
   const handleDragStart = (taskId: number) => {
     setDraggedTaskId(taskId)
@@ -492,7 +504,7 @@ export function TareasPage() {
       setSelectedTarea(t)
       queryClient.setQueryData(['tarea', tid], t)
     }).catch(() => { })
-  }, [id])
+  }, [id, semestreId, queryClient])
 
   useEffect(() => {
     if (!selectedTarea) return
