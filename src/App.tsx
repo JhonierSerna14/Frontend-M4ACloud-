@@ -19,6 +19,7 @@ const NotasPage = lazy(() => import('@/pages/NotasPage').then((m) => ({ default:
 const NotaEditorPage = lazy(() => import('@/pages/NotaEditorPage').then((m) => ({ default: m.NotaEditorPage })))
 const TareasPage = lazy(() => import('@/pages/TareasPage').then((m) => ({ default: m.TareasPage })))
 const GrabarPage = lazy(() => import('@/pages/GrabarPage').then((m) => ({ default: m.GrabarPage })))
+const ConfiguracionPage = lazy(() => import('@/pages/ConfiguracionPage').then((m) => ({ default: m.ConfiguracionPage })))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
 const queryClient = new QueryClient({
@@ -100,6 +101,7 @@ function AppRoutes() {
           <Route path="tareas" element={<TareasPage />} />
           <Route path="tareas/:id" element={<TareasPage />} />
           <Route path="grabar" element={<GrabarPage />} />
+          <Route path="configuracion" element={<ConfiguracionPage />} />
         </Route>
         
         {/* Catch all */}

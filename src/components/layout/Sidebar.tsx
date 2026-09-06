@@ -11,7 +11,8 @@ import {
   Plus,
   Archive,
   ChevronDown,
-  Loader2
+  Loader2,
+  Settings
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
@@ -172,6 +173,14 @@ export function Sidebar() {
             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
           </div>
         </div>
+        <Link
+          to="/configuracion"
+          onClick={() => setMobileOpen(false)}
+          className="inline-flex items-center justify-center w-full mb-2 h-10 px-4 py-2 rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          Configuración
+        </Link>
         <Button 
           variant="outline" 
           className="w-full justify-start" 
