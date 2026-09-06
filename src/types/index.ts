@@ -179,3 +179,18 @@ export interface SyncCrudEvent {
   affected_collections?: string[]
   occurred_at: string
 }
+
+export interface GoogleCalendarStatus {
+  connected: boolean
+  configured: boolean
+  calendar_name?: string
+  connected_at?: string
+  pending_count?: number
+  message?: string
+}
+
+export interface GoogleCalendarSyncResult {
+  synced: number
+  skipped: number
+  errors: number
+}

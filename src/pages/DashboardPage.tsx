@@ -8,6 +8,7 @@ import { tareasService } from '@/services/tareas.service'
 import { Card, CardContent, CardHeader, CardTitle, Loading, Badge } from '@/components/ui'
 import { BookOpen, FileText, CheckSquare, Mic, Plus, Calendar, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
 import { useSemestreScope } from '@/hooks/useSemestreScope'
+import { GoogleCalendarConnect } from '@/components/calendar/GoogleCalendarConnect'
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom']
 
@@ -97,17 +98,20 @@ export function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between gap-2">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <span className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
               Calendario
             </span>
-            {overdueCount > 0 && (
-              <Badge variant="destructive" className="inline-flex items-center gap-1">
-                <AlertTriangle className="h-3 w-3" />
-                {overdueCount} vencida{overdueCount > 1 ? 's' : ''}
-              </Badge>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <GoogleCalendarConnect />
+              {overdueCount > 0 && (
+                <Badge variant="destructive" className="inline-flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {overdueCount} vencida{overdueCount > 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

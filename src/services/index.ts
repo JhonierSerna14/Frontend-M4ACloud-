@@ -6,4 +6,5 @@ export { notasService } from './notas.service'
 export { tareasService } from './tareas.service'
 export { dashboardService } from './dashboard.service'
 export { audioService } from './audio.service'
+export { googleCalendarService } from './googleCalendar.service'
 export default api
