@@ -26,7 +26,7 @@ export default defineConfig({
         scope: '/',
         start_url: '/',
         share_target: {
-          action: '/share-target',
+          action: '/api/share-target',
           method: 'POST',
           enctype: 'multipart/form-data',
           params: {

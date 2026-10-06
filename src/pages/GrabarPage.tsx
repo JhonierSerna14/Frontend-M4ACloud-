@@ -58,6 +58,7 @@ export function GrabarPage() {
   const [processing, setProcessing] = useState<Array<{notaId:number; notifId:string}>>([])
   const sharedAudioId = searchParams.get('sharedAudio')
   const sharedAudioName = searchParams.get('sharedName') || 'audio-compartido'
+  const sharedAudioSource = searchParams.get('sharedSource')
   const shareError = searchParams.get('shareError')
   const shareDebug = searchParams.get('shareDebug')
 
@@ -223,16 +224,22 @@ export function GrabarPage() {
     const loadSharedAudio = async () => {
       setLoadingSharedAudio(true)
       try {
-        const response = await fetch(`/shared-audio/${encodeURIComponent(sharedAudioId)}`, {
-          cache: 'no-store',
-        })
-
-        if (!response.ok) {
-          throw new Error('No se encontró el archivo compartido')
-        }
-
         const decodedName = decodeURIComponent(sharedAudioName)
-        const blob = await response.blob()
+        let blob: Blob
+
+        if (sharedAudioSource === 'server') {
+          blob = await audioService.fetchShareIntake(sharedAudioId)
+        } else {
+          const response = await fetch(`/shared-audio/${encodeURIComponent(sharedAudioId)}`, {
+            cache: 'no-store',
+          })
+
+          if (!response.ok) {
+            throw new Error('No se encontró el archivo compartido')
+          }
+
+          blob = await response.blob()
+        }
         const extFromName = decodedName.split('.').pop()?.toLowerCase() || ''
         const typeFromExt = extFromName === 'mp3'
           ? 'audio/mpeg'
@@ -279,6 +286,7 @@ export function GrabarPage() {
         const next = new URLSearchParams(searchParams)
         next.delete('sharedAudio')
         next.delete('sharedName')
+        next.delete('sharedSource')
         setSearchParams(next, { replace: true })
       } catch (err) {
         if (!cancelled) {
@@ -296,7 +304,7 @@ export function GrabarPage() {
     return () => {
       cancelled = true
     }
-  }, [sharedAudioId, sharedAudioName, searchParams, setSearchParams, titulo, info, error])
+  }, [sharedAudioId, sharedAudioName, sharedAudioSource, searchParams, setSearchParams, titulo, info, error])
 
   useEffect(() => {
     if (!shareError) return

@@ -69,4 +69,13 @@ export const audioService = {
     markTagsDirty(['notas', 'dashboard', 'materias'])
     return data
   },
+
+  /** Audio temporal recibido vía Share Target (servidor Vercel + backend). */
+  async fetchShareIntake(shareId: string): Promise<Blob> {
+    const { data } = await api.get<Blob>(`/audio/share-intake/${shareId}`, {
+      responseType: 'blob',
+      timeout: 120000,
+    })
+    return data
+  },
 }
