@@ -33,7 +33,21 @@ export default defineConfig({
             files: [
               {
                 name: 'audio',
-                accept: ['audio/*', '.m4a', 'audio/mp4', 'audio/x-m4a', 'audio/aac']
+                accept: [
+                  'audio/*',
+                  'video/*',
+                  'application/octet-stream',
+                  '.m4a',
+                  '.mp3',
+                  '.aac',
+                  '.amr',
+                  '.3gp',
+                  'audio/mp4',
+                  'audio/x-m4a',
+                  'audio/aac',
+                  'audio/amr',
+                  'audio/3gpp',
+                ],
               }
             ]
           }

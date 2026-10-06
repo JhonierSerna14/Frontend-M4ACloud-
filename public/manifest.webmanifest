@@ -36,10 +36,18 @@
           "name": "audio",
           "accept": [
             "audio/*",
+            "video/*",
+            "application/octet-stream",
             ".m4a",
+            ".mp3",
+            ".aac",
+            ".amr",
+            ".3gp",
             "audio/mp4",
             "audio/x-m4a",
-            "audio/aac"
+            "audio/aac",
+            "audio/amr",
+            "audio/3gpp"
           ]
         }
       ]

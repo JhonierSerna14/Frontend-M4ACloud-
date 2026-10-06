@@ -299,7 +299,14 @@ export function GrabarPage() {
 
   useEffect(() => {
     if (!shareError) return
-    error('Error', 'No se pudo recibir el audio compartido en la app')
+
+    const messages: Record<string, string> = {
+      'missing-file': 'No llegó ningún archivo de audio desde la app que compartió. Prueba de nuevo o sube el archivo manualmente.',
+      'invalid-request': 'No se pudo procesar el audio compartido. Cierra M4A, ábrela de nuevo desde el ícono instalado y vuelve a compartir.',
+      'storage-failed': 'No hubo espacio para guardar el audio compartido. Libera espacio en el teléfono e intenta otra vez.',
+    }
+
+    error('Error', messages[shareError] || 'No se pudo recibir el audio compartido en la app')
     const next = new URLSearchParams(searchParams)
     next.delete('shareError')
     setSearchParams(next, { replace: true })
