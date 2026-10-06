@@ -22,18 +22,20 @@ function isLikelyAudio(mime: string, name: string): boolean {
 }
 
 function toAudioFile(value: FormDataEntryValue | null, fallbackName: string): File | null {
-  if (!value) return null
+  if (!value || typeof value === 'string') return null
 
-  if (value instanceof File) {
-    if (value.size === 0) return null
-    return value
+  const blobEntry = value as File | Blob
+
+  if (blobEntry instanceof File) {
+    if (blobEntry.size === 0) return null
+    return blobEntry
   }
 
-  if (value instanceof Blob) {
-    if (value.size === 0) return null
-    const type = value.type || 'application/octet-stream'
+  if (blobEntry instanceof Blob) {
+    if (blobEntry.size === 0) return null
+    const type = blobEntry.type || 'application/octet-stream'
     if (!isLikelyAudio(type, fallbackName)) return null
-    return new File([value], fallbackName, { type })
+    return new File([blobEntry], fallbackName, { type })
   }
 
   return null
