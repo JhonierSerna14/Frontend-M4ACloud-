@@ -42,13 +42,24 @@ export default defineConfig({
                   '.aac',
                   '.amr',
                   '.3gp',
+                  '.wav',
+                  '.ogg',
+                  '.webm',
+                  '.opus',
                   'audio/mp4',
                   'audio/x-m4a',
+                  'audio/m4a',
                   'audio/aac',
                   'audio/amr',
                   'audio/3gpp',
+                  'audio/mpeg',
+                  'audio/webm',
                 ],
-              }
+              },
+              {
+                name: 'media',
+                accept: ['audio/*', 'video/*', 'application/octet-stream', '.m4a', '.mp3', '.aac'],
+              },
             ]
           }
         },

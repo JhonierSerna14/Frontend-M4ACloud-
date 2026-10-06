@@ -8,53 +8,86 @@ declare let self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<string | { revision: string | null; url: string }>
 }
 
-const SHARE_CACHE = 'm4a-share-target-v3'
+const SHARE_CACHE = 'm4a-share-target-v4'
 const SHARE_ROUTE_PREFIX = '/shared-audio/'
+const SHARE_FIELD_NAMES = ['audio', 'file', 'media', 'recording', 'shared', 'files']
 
-function isLikelyAudio(mime: string, name: string): boolean {
-  const lowerName = name.toLowerCase()
-  if (mime.startsWith('audio/')) return true
-  if (mime.startsWith('video/')) return true
-  if (mime === 'application/octet-stream') {
-    return /\.(m4a|mp3|aac|wav|ogg|oga|amr|3gp|webm)$/i.test(lowerName)
+function isBlobLike(value: unknown): value is Blob {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'size' in value &&
+    typeof (value as Blob).arrayBuffer === 'function'
+  )
+}
+
+function resolveFileName(value: Blob, fallbackName: string): string {
+  const maybeFile = value as File
+  if (typeof maybeFile.name === 'string' && maybeFile.name.trim()) {
+    return maybeFile.name
   }
-  return false
+  return fallbackName
 }
 
 function toAudioFile(value: FormDataEntryValue | null, fallbackName: string): File | null {
   if (!value || typeof value === 'string') return null
+  if (!isBlobLike(value)) return null
+  if (value.size === 0) return null
 
-  const blobEntry = value as File | Blob
-
-  if (blobEntry instanceof File) {
-    if (blobEntry.size === 0) return null
-    return blobEntry
-  }
-
-  if (blobEntry instanceof Blob) {
-    if (blobEntry.size === 0) return null
-    const type = blobEntry.type || 'application/octet-stream'
-    if (!isLikelyAudio(type, fallbackName)) return null
-    return new File([blobEntry], fallbackName, { type })
-  }
-
-  return null
+  const name = resolveFileName(value, fallbackName)
+  const type = value.type || 'application/octet-stream'
+  return new File([value], name, { type })
 }
 
-function extractSharedAudioFile(formData: FormData): File | null {
-  const preferred = toAudioFile(formData.get('audio'), 'audio-compartido.m4a')
-  if (preferred) return preferred
-
+function describeFormData(formData: FormData): string {
+  const parts: string[] = []
   for (const [key, value] of formData.entries()) {
-    if (key === 'audio') continue
-    const fallbackName = key.toLowerCase().includes('audio')
-      ? 'audio-compartido.m4a'
-      : `audio-compartido-${key}.m4a`
-    const candidate = toAudioFile(value, fallbackName)
-    if (candidate) return candidate
+    if (typeof value === 'string') {
+      parts.push(`${key}:string(${value.length})`)
+      continue
+    }
+    if (isBlobLike(value)) {
+      const name = resolveFileName(value, '')
+      parts.push(`${key}:blob(${value.type || 'no-type'},${value.size},${name || 'no-name'})`)
+      continue
+    }
+    parts.push(`${key}:unknown`)
+  }
+  return parts.join('|') || 'empty'
+}
+
+function extractSharedAudioFile(formData: FormData): { file: File | null; debug: string } {
+  const debug = describeFormData(formData)
+  const candidates: File[] = []
+
+  for (const fieldName of SHARE_FIELD_NAMES) {
+    for (const value of formData.getAll(fieldName)) {
+      const file = toAudioFile(value, `audio-compartido-${fieldName}.m4a`)
+      if (file) candidates.push(file)
+    }
   }
 
-  return null
+  for (const [key, value] of formData.entries()) {
+    if (SHARE_FIELD_NAMES.includes(key)) continue
+    const file = toAudioFile(value, `audio-compartido-${key}.m4a`)
+    if (file) candidates.push(file)
+  }
+
+  if (candidates.length === 0) {
+    return { file: null, debug }
+  }
+
+  const preferred = candidates.find((file) => {
+    const type = file.type.toLowerCase()
+    const name = file.name.toLowerCase()
+    return (
+      type.startsWith('audio/') ||
+      type.startsWith('video/') ||
+      /\.(m4a|mp3|aac|wav|ogg|oga|amr|3gp|webm|opus)$/i.test(name)
+    )
+  })
+
+  return { file: preferred ?? candidates[0], debug }
 }
 
 self.addEventListener('fetch', (event) => {
@@ -101,10 +134,11 @@ async function handleShareTarget(request: Request) {
 
   try {
     const formData = await request.formData()
-    const shared = extractSharedAudioFile(formData)
+    const { file: shared, debug } = extractSharedAudioFile(formData)
 
     if (!shared) {
-      return Response.redirect(`${origin}/grabar?shareError=missing-file`, 303)
+      const debugParam = encodeURIComponent(debug.slice(0, 240))
+      return Response.redirect(`${origin}/grabar?shareError=missing-file&shareDebug=${debugParam}`, 303)
     }
 
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`

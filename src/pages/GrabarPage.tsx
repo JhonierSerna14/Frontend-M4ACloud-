@@ -59,6 +59,7 @@ export function GrabarPage() {
   const sharedAudioId = searchParams.get('sharedAudio')
   const sharedAudioName = searchParams.get('sharedName') || 'audio-compartido'
   const shareError = searchParams.get('shareError')
+  const shareDebug = searchParams.get('shareDebug')
 
   useOnSemestreChange(() => {
     setMateriaId(0)
@@ -306,11 +307,17 @@ export function GrabarPage() {
       'storage-failed': 'No hubo espacio para guardar el audio compartido. Libera espacio en el teléfono e intenta otra vez.',
     }
 
-    error('Error', messages[shareError] || 'No se pudo recibir el audio compartido en la app')
+    let message = messages[shareError] || 'No se pudo recibir el audio compartido en la app'
+    if (shareError === 'missing-file' && shareDebug) {
+      message += ` Detalle técnico: ${decodeURIComponent(shareDebug)}`
+    }
+
+    error('Error', message)
     const next = new URLSearchParams(searchParams)
     next.delete('shareError')
+    next.delete('shareDebug')
     setSearchParams(next, { replace: true })
-  }, [shareError, searchParams, setSearchParams, error])
+  }, [shareError, shareDebug, searchParams, setSearchParams, error])
 
   const resetState = () => {
     setAudioFile(null)
